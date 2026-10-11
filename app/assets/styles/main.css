@@ -1,0 +1,963 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+/* =========================================================
+   1. Variables
+========================================================= */
+
+:root {
+    --font-sans: "Inter", "Segoe UI", Arial, sans-serif;
+    --bg-950: #020814;
+    --bg-900: #04111f;
+    --bg-850: #07192b;
+    --surface-900: #0b1a2a;
+    --surface-800: #10243a;
+    --surface-700: #163451;
+    --accent-500: #168fff;
+    --accent-400: #28b8ff;
+    --accent-300: #39cdff;
+    --success-400: #5cf2b2;
+    --text-100: #ffffff;
+    --text-300: #dce8f5;
+    --text-500: #a5b4c5;
+    --text-700: #8397ad;
+    --border-soft: rgba(255, 255, 255, 0.11);
+    --border-blue: rgba(57, 205, 255, 0.28);
+    --shadow-soft: 0 24px 70px rgba(0, 0, 0, 0.36);
+    --shadow-blue: 0 22px 50px rgba(22, 143, 255, 0.24);
+    --radius-lg: 24px;
+    --radius-md: 18px;
+    --radius-sm: 12px;
+}
+
+
+/* =========================================================
+   2. Base
+========================================================= */
+
+.stApp {
+    font-family: var(--font-sans);
+    color: var(--text-100);
+    background:
+        radial-gradient(circle at 50% -16%, rgba(40, 184, 255, 0.24), transparent 34%),
+        radial-gradient(circle at 6% 18%, rgba(22, 143, 255, 0.16), transparent 26%),
+        linear-gradient(145deg, var(--bg-950) 0%, var(--bg-900) 43%, #02050d 100%);
+}
+
+.block-container {
+    max-width: 1580px;
+    padding: 1.6rem 4rem 5.4rem;
+}
+
+h1,
+h2,
+h3,
+p,
+button,
+input,
+textarea,
+label,
+div[data-baseweb="select"] {
+    font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+p {
+    color: var(--text-100);
+}
+
+.fade-in {
+    animation: fadeInUp 0.42s ease both;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* =========================================================
+   3. Streamlit overrides
+========================================================= */
+
+#MainMenu,
+footer,
+div[data-testid="stToolbar"],
+div[data-testid="stDecoration"] {
+    display: none !important;
+}
+
+header[data-testid="stHeader"] {
+    background: transparent;
+}
+
+div[data-testid="stAlert"] {
+    color: var(--text-100);
+    background: rgba(12, 32, 55, 0.92);
+    border: 1px solid var(--border-blue);
+    border-radius: var(--radius-sm);
+}
+
+div[data-testid="stSpinner"] {
+    color: var(--text-300);
+}
+
+
+/* =========================================================
+   4. Header
+========================================================= */
+
+.st-key-app-header {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(26px, 2.5vw, 40px);
+    border: 1px solid rgba(57, 205, 255, 0.18);
+    border-radius: var(--radius-lg);
+    background:
+        linear-gradient(135deg, rgba(16, 36, 58, 0.92), rgba(5, 18, 31, 0.88)),
+        radial-gradient(circle at 12% 0%, rgba(57, 205, 255, 0.18), transparent 34%);
+    box-shadow: var(--shadow-soft);
+}
+
+.st-key-app-header::after {
+    position: absolute;
+    right: -120px;
+    bottom: -180px;
+    width: 420px;
+    height: 420px;
+    content: "";
+    pointer-events: none;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(40, 184, 255, 0.16), transparent 64%);
+}
+
+.st-key-app-header div[data-testid="stImage"] img {
+    max-height: 180px;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.42));
+}
+
+.header-kicker {
+    margin-bottom: 12px;
+    color: var(--accent-300);
+    font-size: clamp(0.9rem, 1vw, 1.1rem);
+    font-weight: 900;
+    letter-spacing: 0.26em;
+    line-height: 1.25;
+}
+
+.header-title {
+    color: var(--text-100);
+    font-size: clamp(2.6rem, 3.5vw, 4rem);
+    font-weight: 950;
+    line-height: 1.02;
+}
+
+.header-subtitle {
+    margin-top: 14px;
+    color: var(--text-500);
+    font-size: clamp(1rem, 1.25vw, 1.3rem);
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.system-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 52px;
+    width: 100%;
+    padding: 0 18px;
+    border: 1px solid rgba(92, 242, 178, 0.25);
+    border-radius: 999px;
+    color: var(--text-100);
+    background: rgba(92, 242, 178, 0.08);
+    box-shadow: 0 0 28px rgba(92, 242, 178, 0.08);
+    font-size: clamp(0.9rem, 0.85vw, 1rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--success-400);
+    box-shadow: 0 0 18px rgba(92, 242, 178, 0.75);
+}
+
+.header-divider {
+    height: 1px;
+    margin: 34px 0 36px;
+    background: linear-gradient(90deg, transparent, rgba(57, 205, 255, 0.44), transparent);
+}
+
+
+/* =========================================================
+   5. Match center
+========================================================= */
+
+.match-center-intro {
+    margin: 0 auto 30px;
+    text-align: center;
+}
+
+.section-kicker {
+    color: var(--accent-300);
+    font-size: clamp(0.9rem, 0.95vw, 1.05rem);
+    font-weight: 950;
+    letter-spacing: 0.34em;
+    line-height: 1.25;
+}
+
+.match-center-intro h1 {
+    margin: 10px 0 0;
+    color: var(--text-100);
+    font-size: clamp(2.2rem, 3vw, 3.2rem);
+    font-weight: 950;
+    line-height: 1.1;
+}
+
+.match-center-intro p {
+    margin: 12px 0 0;
+    color: var(--text-500);
+    font-size: clamp(1rem, 1.2vw, 1.25rem);
+    line-height: 1.4;
+}
+
+.st-key-match-controls [data-testid="stVerticalBlockBorderWrapper"] {
+    padding: clamp(22px, 1.9vw, 30px);
+    border: 1px solid rgba(57, 205, 255, 0.16);
+    border-radius: var(--radius-md);
+    background: rgba(8, 24, 40, 0.68);
+    box-shadow: 0 16px 46px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(18px);
+}
+
+.controls-title {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.controls-title span {
+    color: var(--accent-300);
+    font-size: clamp(0.85rem, 0.82vw, 0.98rem);
+    font-weight: 950;
+    letter-spacing: 0.22em;
+}
+
+.controls-title strong {
+    color: var(--text-300);
+    font-size: clamp(1rem, 0.95vw, 1.12rem);
+    font-weight: 700;
+}
+
+.fixture-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 34px 0 22px;
+    color: var(--text-300);
+}
+
+.fixture-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: clamp(0.92rem, 0.85vw, 1rem);
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   6. Teams
+========================================================= */
+
+.st-key-team-card-local [data-testid="stVerticalBlockBorderWrapper"],
+.st-key-team-card-visitante [data-testid="stVerticalBlockBorderWrapper"] {
+    min-height: clamp(380px, 40vh, 455px);
+    padding: clamp(24px, 2.2vw, 34px);
+    border: 1px solid rgba(57, 205, 255, 0.20);
+    border-radius: var(--radius-lg);
+    background:
+        radial-gradient(circle at 50% 12%, rgba(57, 205, 255, 0.18), transparent 34%),
+        linear-gradient(165deg, rgba(16, 36, 58, 0.96), rgba(5, 16, 29, 0.98));
+    box-shadow: var(--shadow-soft);
+    transition:
+        transform 0.24s ease,
+        border-color 0.24s ease,
+        box-shadow 0.24s ease;
+}
+
+.st-key-team-card-local:hover [data-testid="stVerticalBlockBorderWrapper"],
+.st-key-team-card-visitante:hover [data-testid="stVerticalBlockBorderWrapper"] {
+    transform: translateY(-4px);
+    border-color: rgba(57, 205, 255, 0.42);
+    box-shadow: 0 30px 86px rgba(0, 0, 0, 0.44);
+}
+
+.team-role {
+    margin: 4px 0 20px;
+    color: var(--accent-300);
+    text-align: center;
+    font-size: clamp(0.9rem, 0.85vw, 1.05rem);
+    font-weight: 950;
+    letter-spacing: 0.34em;
+}
+
+.st-key-team-card-local div[data-testid="stImage"],
+.st-key-team-card-visitante div[data-testid="stImage"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(170px, 17vw, 230px);
+}
+
+.st-key-team-card-local div[data-testid="stImage"] img,
+.st-key-team-card-visitante div[data-testid="stImage"] img {
+    width: 100%;
+    max-height: clamp(150px, 16vw, 210px);
+    object-fit: contain;
+    filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.38));
+}
+
+.team-name {
+    max-width: 92%;
+    margin: 22px auto 0;
+    color: var(--text-100);
+    text-align: center;
+    font-size: clamp(1.8rem, 2.3vw, 2.6rem);
+    font-weight: 950;
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+}
+
+.team-code {
+    margin-top: 14px;
+    color: var(--text-700);
+    text-align: center;
+    font-size: clamp(0.9rem, 0.8vw, 1rem);
+    font-weight: 950;
+    letter-spacing: 0.28em;
+}
+
+.crest-placeholder {
+    display: grid;
+    place-items: center;
+    min-height: 180px;
+    color: var(--text-700);
+    font-weight: 900;
+    letter-spacing: 0.18em;
+}
+
+
+/* =========================================================
+   7. VS
+========================================================= */
+
+.central-vs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 182px;
+    text-align: center;
+}
+
+.central-vs-small {
+    margin-bottom: 10px;
+    color: var(--text-700);
+    font-size: clamp(0.75rem, 0.7vw, 0.88rem);
+    font-weight: 950;
+    letter-spacing: 0.32em;
+}
+
+.central-vs-main {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(88px, 6.4vw, 116px);
+    height: clamp(88px, 6.4vw, 116px);
+    border: 1px solid rgba(57, 205, 255, 0.34);
+    border-radius: 50%;
+    color: var(--text-100);
+    background:
+        radial-gradient(circle at 50% 35%, rgba(57, 205, 255, 0.26), rgba(7, 25, 43, 0.82) 64%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+    box-shadow:
+        0 0 0 9px rgba(40, 184, 255, 0.05),
+        0 0 42px rgba(22, 143, 255, 0.20);
+    font-size: clamp(2rem, 2.2vw, 2.65rem);
+    font-weight: 950;
+}
+
+.selector-vs {
+    display: grid;
+    place-items: center;
+    min-height: 58px;
+    margin-bottom: 2px;
+    color: var(--accent-300);
+    font-size: clamp(1rem, 0.9vw, 1.12rem);
+    font-weight: 950;
+    letter-spacing: 0.16em;
+}
+
+
+/* =========================================================
+   8. Selectors
+========================================================= */
+
+label[data-testid="stWidgetLabel"] p {
+    color: var(--text-300);
+    font-size: clamp(1rem, 0.9vw, 1.1rem);
+    font-weight: 850;
+    line-height: 1.3;
+}
+
+div[data-baseweb="select"] > div,
+div[data-testid="stDateInput"] input {
+    min-height: 58px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    color: var(--text-100);
+    background: rgba(255, 255, 255, 0.065);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+div[data-baseweb="select"] > div:hover,
+div[data-testid="stDateInput"] input:hover {
+    border-color: rgba(57, 205, 255, 0.46);
+    background: rgba(255, 255, 255, 0.085);
+}
+
+div[data-baseweb="select"] span,
+div[data-testid="stSelectbox"] input[role="combobox"],
+div[data-testid="stSelectbox"] [role="combobox"],
+div[data-testid="stDateInput"] input {
+    font-family: var(--font-sans);
+    color: var(--text-100);
+    font-size: clamp(1rem, 0.9vw, 1.12rem);
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+div[role="option"] {
+    font-family: var(--font-sans);
+    font-size: clamp(1rem, 0.9vw, 1.08rem);
+    font-weight: 650;
+}
+
+
+/* =========================================================
+   9. Prediction
+========================================================= */
+
+.prediction-panel,
+.poisson-panel {
+    margin-top: 38px;
+    padding: clamp(26px, 2.25vw, 38px);
+    border: 1px solid rgba(57, 205, 255, 0.18);
+    border-radius: var(--radius-lg);
+    background:
+        radial-gradient(circle at 8% 0%, rgba(57, 205, 255, 0.12), transparent 32%),
+        rgba(7, 20, 34, 0.88);
+    box-shadow: var(--shadow-soft);
+}
+
+.panel-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 26px;
+}
+
+.panel-heading span {
+    color: var(--accent-300);
+    font-size: clamp(0.88rem, 0.8vw, 1rem);
+    font-weight: 950;
+    letter-spacing: 0.28em;
+}
+
+.panel-heading h2 {
+    margin: 0;
+    color: var(--text-100);
+    font-size: clamp(2rem, 2.5vw, 2.8rem);
+    font-weight: 950;
+    line-height: 1.1;
+    text-align: right;
+}
+
+.prob-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.prob-card {
+    position: relative;
+    overflow: hidden;
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.prob-card.is-active {
+    border-color: rgba(57, 205, 255, 0.52);
+    background: linear-gradient(155deg, rgba(22, 143, 255, 0.22), rgba(255, 255, 255, 0.05));
+    box-shadow: var(--shadow-blue);
+}
+
+.prob-role {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--accent-300);
+    font-size: clamp(0.88rem, 0.8vw, 1rem);
+    font-weight: 950;
+    letter-spacing: 0.22em;
+}
+
+.prob-card strong {
+    display: block;
+    min-height: 50px;
+    color: var(--text-100);
+    font-size: clamp(1.06rem, 1.05vw, 1.25rem);
+    font-weight: 900;
+    line-height: 1.16;
+}
+
+.prob-value {
+    margin: 22px 0 14px;
+    color: var(--text-100);
+    font-size: clamp(2.4rem, 3vw, 3.4rem);
+    font-weight: 950;
+    line-height: 1;
+}
+
+.prob-track {
+    overflow: hidden;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.prob-fill {
+    display: block;
+    width: var(--bar);
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent-500), var(--accent-300));
+    box-shadow: 0 0 18px rgba(40, 184, 255, 0.36);
+}
+
+.prob-card small {
+    display: block;
+    margin-top: 14px;
+    color: var(--text-500);
+    font-size: clamp(0.95rem, 0.85vw, 1.05rem);
+    font-weight: 750;
+}
+
+.main-pick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 24px;
+    padding: 18px 20px;
+    border: 1px solid rgba(57, 205, 255, 0.18);
+    border-radius: var(--radius-md);
+    background: rgba(57, 205, 255, 0.07);
+}
+
+.main-pick span {
+    color: var(--text-500);
+    font-size: clamp(0.95rem, 0.86vw, 1.05rem);
+    font-weight: 800;
+}
+
+.main-pick strong {
+    color: var(--text-100);
+    font-size: clamp(1.05rem, 1vw, 1.2rem);
+    font-weight: 950;
+    letter-spacing: 0.1em;
+}
+
+
+/* =========================================================
+   10. Poisson
+========================================================= */
+
+.poisson-layout {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 20px;
+}
+
+.expected-goals {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.goal-card,
+.modal-score,
+.score-pill {
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.goal-card {
+    padding: 24px;
+}
+
+.goal-card span {
+    display: block;
+    min-height: 46px;
+    color: var(--text-300);
+    font-size: clamp(1.05rem, 1vw, 1.25rem);
+    font-weight: 850;
+    line-height: 1.2;
+}
+
+.goal-card strong {
+    display: block;
+    margin-top: 14px;
+    color: var(--text-100);
+    font-size: clamp(2.2rem, 2.7vw, 3rem);
+    font-weight: 950;
+    line-height: 1;
+}
+
+.goal-card small {
+    display: block;
+    margin-top: 12px;
+    color: var(--text-700);
+    font-size: clamp(0.95rem, 0.85vw, 1.05rem);
+    font-weight: 800;
+}
+
+.modal-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 210px;
+    padding: 24px;
+    text-align: center;
+    background:
+        radial-gradient(circle at 50% 8%, rgba(57, 205, 255, 0.18), transparent 44%),
+        rgba(255, 255, 255, 0.045);
+}
+
+.modal-score span,
+.top-scores > span {
+    color: var(--accent-300);
+    font-size: clamp(0.86rem, 0.78vw, 0.98rem);
+    font-weight: 950;
+    letter-spacing: 0.22em;
+}
+
+.modal-score strong {
+    margin: 16px 0 10px;
+    color: var(--text-100);
+    font-size: clamp(3.5rem, 5vw, 5rem);
+    font-weight: 950;
+    line-height: 1;
+}
+
+.modal-score small {
+    color: var(--text-500);
+    font-size: clamp(1rem, 0.95vw, 1.12rem);
+    font-weight: 850;
+}
+
+.top-scores {
+    margin-top: 24px;
+}
+
+.score-list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.score-pill {
+    padding: 18px 14px;
+    text-align: center;
+}
+
+.score-pill strong {
+    display: block;
+    color: var(--text-100);
+    font-size: clamp(1.38rem, 1.35vw, 1.65rem);
+    font-weight: 950;
+}
+
+.score-pill span {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-500);
+    font-size: clamp(0.9rem, 0.8vw, 1rem);
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   10.5 History
+========================================================= */
+
+.history-panel {
+    margin-top: 34px;
+    padding: clamp(20px, 1.7vw, 28px);
+    border: 1px solid rgba(57, 205, 255, 0.14);
+    border-radius: var(--radius-md);
+    background:
+        linear-gradient(145deg, rgba(9, 26, 43, 0.82), rgba(4, 14, 26, 0.84)),
+        rgba(255, 255, 255, 0.035);
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.24);
+}
+
+.history-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.history-heading span {
+    color: var(--accent-300);
+    font-size: clamp(0.78rem, 0.72vw, 0.9rem);
+    font-weight: 950;
+    letter-spacing: 0.24em;
+}
+
+.history-heading h2 {
+    margin: 0;
+    color: var(--text-100);
+    font-size: clamp(1.35rem, 1.55vw, 1.85rem);
+    font-weight: 950;
+    line-height: 1.12;
+}
+
+.history-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.history-card {
+    display: grid;
+    grid-template-columns: 1.05fr 1.45fr 1.5fr 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.history-meta,
+.history-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--text-700);
+    font-size: clamp(0.82rem, 0.75vw, 0.94rem);
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.history-meta span:first-child,
+.history-footer span:last-child {
+    color: var(--text-300);
+}
+
+.history-match {
+    display: grid;
+    gap: 5px;
+}
+
+.history-match strong {
+    color: var(--text-100);
+    font-size: clamp(0.95rem, 0.9vw, 1.08rem);
+    font-weight: 900;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.history-match span {
+    color: var(--accent-300);
+    font-size: 0.78rem;
+    font-weight: 950;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.history-detail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.history-detail span {
+    display: block;
+    color: var(--text-700);
+    font-size: clamp(0.78rem, 0.72vw, 0.9rem);
+    font-weight: 850;
+}
+
+.history-detail strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-100);
+    font-size: clamp(0.92rem, 0.86vw, 1.04rem);
+    font-weight: 950;
+    line-height: 1.18;
+    overflow-wrap: anywhere;
+}
+
+.history-empty {
+    padding: 18px;
+    border: 1px dashed rgba(57, 205, 255, 0.24);
+    border-radius: var(--radius-sm);
+    color: var(--text-500);
+    background: rgba(255, 255, 255, 0.035);
+    font-size: clamp(0.95rem, 0.85vw, 1.05rem);
+    font-weight: 750;
+}
+
+
+/* =========================================================
+   11. Buttons
+========================================================= */
+
+.st-key-analyze-button button {
+    min-height: 68px;
+    border: 0 !important;
+    border-radius: 15px !important;
+    color: var(--text-100) !important;
+    background: linear-gradient(100deg, #087df5, var(--accent-500), var(--accent-300)) !important;
+    box-shadow: var(--shadow-blue);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        filter 0.2s ease;
+}
+
+.st-key-analyze-button button:hover {
+    transform: translateY(-3px);
+    filter: saturate(1.08);
+    box-shadow: 0 28px 62px rgba(22, 143, 255, 0.34);
+}
+
+.st-key-analyze-button button p {
+    color: var(--text-100);
+    font-size: clamp(1rem, 0.95vw, 1.12rem);
+    font-weight: 950;
+    letter-spacing: 0.14em;
+}
+
+
+/* =========================================================
+   12. Responsive
+========================================================= */
+
+@media (max-width: 1100px) {
+    .block-container {
+        padding-right: 2rem;
+        padding-left: 2rem;
+    }
+
+    .prob-grid,
+    .poisson-layout,
+    .history-card {
+        grid-template-columns: 1fr;
+    }
+
+    .history-detail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .score-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .block-container {
+        padding: 1rem 1rem 4rem;
+    }
+
+    .st-key-app-header {
+        text-align: center;
+    }
+
+    .system-status {
+        margin-top: 8px;
+    }
+
+    .controls-title,
+    .panel-heading,
+    .history-heading,
+    .main-pick,
+    .fixture-meta {
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .panel-heading h2 {
+        text-align: center;
+    }
+
+    .expected-goals,
+    .history-detail,
+    .score-list {
+        grid-template-columns: 1fr;
+    }
+
+    .central-vs {
+        min-height: 118px;
+    }
+}
+
+@media (max-width: 520px) {
+    .header-title {
+        font-size: 2.1rem;
+    }
+
+    .st-key-team-card-local [data-testid="stVerticalBlockBorderWrapper"],
+    .st-key-team-card-visitante [data-testid="stVerticalBlockBorderWrapper"] {
+        min-height: 330px;
+        padding: 18px;
+    }
+
+    .team-name {
+        font-size: 1.35rem;
+    }
+}

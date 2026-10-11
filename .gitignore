@@ -1,0 +1,57 @@
+# Python environments
+.venv/
+venv/
+
+# Python cache and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*$py.class
+build/
+dist/
+*.egg-info/
+
+# Notebooks and test/cache artifacts
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment files and credentials
+.env
+*.env
+.env.*
+*.pem
+*.key
+
+# Local runtime data
+database/*.db
+*.sqlite
+*.sqlite3
+
+# Logs, temporary files and editor/OS metadata
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*~
+~$*
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+
+# Local backup copies
+*_backup.py
+*_backup_*.py
+*_backup.css
+*_backup_*.css
+backup/
+backups/
