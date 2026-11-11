@@ -1,16 +1,14 @@
-"""Modelos y validación: resultados de los notebooks 07, 08 y 09."""
+"""Modelos y validación: métricas exportadas por los notebooks 05 a 09."""
+
+from datetime import date
 
 import streamlit as st
 
 from services.reporte_service import (
-    CV_BASELINE_ACCURACY,
-    CV_N_FOLDS,
-    CV_TEMPORAL,
     FIGURAS,
-    POISSON_PRUEBA,
-    PRUEBA_FINAL,
-    PRUEBA_FINAL_PARTIDOS,
-    PRUEBA_FINAL_PERIODO,
+    cv_temporal,
+    poisson_prueba,
+    prueba_final,
     ruta_figura,
 )
 from ui.components import (
@@ -32,24 +30,61 @@ def _num(valor):
     return "-" if valor is None else f"{valor:.4f}"
 
 
+def _fecha(texto):
+    try:
+        return date.fromisoformat(texto).strftime("%d/%m/%Y")
+    except (TypeError, ValueError):
+        return "-"
+
+
+cv = cv_temporal()
+final = prueba_final()
+poisson = poisson_prueba()
+
+prueba = (final or {}).get("prueba", {})
+n_prueba = prueba.get("n_partidos")
+periodo_prueba = (
+    f"{_fecha(prueba.get('fecha_inicio'))} a {_fecha(prueba.get('fecha_fin'))}"
+    if prueba
+    else ""
+)
+
+chips = []
+
+if cv:
+    chips = [(f"{cv['n_folds']} folds temporales", ""), ("Ventana expansiva", "")]
+
 page_header(
     "Modelos y validación",
     "Qué tan confiable es la predicción",
-    "Resultados obtenidos en los notebooks de la tesis. Se muestran tal como "
-    "se registraron; no se recalculan al abrir esta página.",
-    chips=[(f"{CV_N_FOLDS} folds temporales", ""), ("Ventana expansiva", "")],
+    "Resultados obtenidos en los notebooks de la tesis y exportados a "
+    "data/processed/metricas_validacion.json. La aplicación los muestra tal "
+    "como se registraron; no recalcula nada.",
+    chips=chips,
 )
 
-xgb_cv = next(m for m in CV_TEMPORAL if m["modelo"] == "XGBoost")
-mejor_cv = max(CV_TEMPORAL, key=lambda m: m["accuracy"])
-xgb_final = next(m for m in PRUEBA_FINAL if m["modelo"] == "XGBoost")
-base_final = next(m for m in PRUEBA_FINAL if m["modelo"].startswith("Baseline"))
+if cv is None and final is None:
+    empty_state(
+        "Métricas no disponibles",
+        "No se encontró data/processed/metricas_validacion.json. Ejecuta los "
+        "notebooks 05 a 09 hasta su última celda («Exportación de métricas») "
+        "para generarlo.",
+        icono="📊",
+    )
 
-metric_row(
-    [
+# ------------------------------------------------------------
+# Tarjetas resumen
+# ------------------------------------------------------------
+
+tarjetas = []
+
+if cv:
+    mejor_cv = max(cv["modelos"], key=lambda m: m["accuracy"])
+
+    tarjetas += [
         (
             "Baseline temporal",
-            _pct(CV_BASELINE_ACCURACY),
+            _pct(cv["baseline_accuracy"]),
             "Accuracy promedio de la clase más frecuente",
             "",
         ),
@@ -59,21 +94,36 @@ metric_row(
             f"{mejor_cv['modelo']} · ± {mejor_cv['accuracy_sd'] * 100:.1f} pp",
             "accent",
         ),
-        (
-            "XGBoost, prueba final",
-            _pct(xgb_final["accuracy"]),
-            f"Baseline {_pct(base_final['accuracy'])} · {PRUEBA_FINAL_PARTIDOS} partidos",
-            "gold",
-        ),
+    ]
+
+if final:
+    xgb_final = next(
+        (m for m in final["modelos"] if m["modelo"] == "XGBoost"), None
+    )
+    base_final = final.get("baseline")
+
+    if xgb_final and base_final:
+        tarjetas.append(
+            (
+                "XGBoost, prueba final",
+                _pct(xgb_final["accuracy"]),
+                f"Baseline {_pct(base_final['accuracy'])} · {n_prueba} partidos",
+                "gold",
+            )
+        )
+
+if poisson:
+    tarjetas.append(
         (
             "Marcador exacto (Poisson)",
-            _pct(POISSON_PRUEBA["marcador_exacto"]),
-            f"{POISSON_PRUEBA['marcadores_acertados']} de {PRUEBA_FINAL_PARTIDOS} partidos",
+            _pct(poisson["marcador_exacto"]),
+            f"{poisson['marcadores_acertados']} de {poisson['n_partidos']} partidos",
             "",
-        ),
-    ]
-)
+        )
+    )
 
+if tarjetas:
+    metric_row(tarjetas)
 
 # ------------------------------------------------------------
 # Modelos en uso
@@ -98,67 +148,96 @@ mostrar(
     "</div>"
 )
 
-
 # ------------------------------------------------------------
 # Validación cruzada temporal
 # ------------------------------------------------------------
 
-section_title("Validación cruzada temporal", "Notebook 09")
+if cv:
+    section_title("Validación cruzada temporal", "Notebook 09")
 
-mostrar(
-    data_table_html(
-        [
-            "Modelo", "Accuracy", "± Desv.", "F1 macro",
-            "Log loss", f"Folds sobre baseline (de {CV_N_FOLDS})",
-        ],
-        [
+    mostrar(
+        data_table_html(
             [
-                m["modelo"],
-                _pct(m["accuracy"]),
-                f"{m['accuracy_sd'] * 100:.1f} pp",
-                _num(m["f1_macro"]),
-                _num(m["log_loss"]),
-                str(m["folds_sobre_baseline"]),
-            ]
-            for m in CV_TEMPORAL
-        ],
-        destacar=CV_TEMPORAL.index(mejor_cv),
+                "Modelo", "Accuracy", "± Desv.", "F1 macro",
+                "Log loss", f"Folds sobre baseline (de {cv['n_folds']})",
+            ],
+            [
+                [
+                    m["modelo"],
+                    _pct(m["accuracy"]),
+                    f"{m['accuracy_sd'] * 100:.1f} pp",
+                    _num(m["f1_macro"]),
+                    _num(m["log_loss"]),
+                    str(m["folds_sobre_baseline"]),
+                ]
+                for m in cv["modelos"]
+            ],
+            destacar=cv["modelos"].index(mejor_cv),
+        )
     )
-)
 
-st.caption(
-    "Cada fold entrena con los años anteriores y valida con el año siguiente "
-    "(2014-2019 → 2020, …, 2014-2024 → 2025). Los partidos de 2026 "
-    "(enero a septiembre) quedaron reservados para la prueba final."
-)
+    anios = cv.get("anios_validacion") or []
+    rango = f"{anios[0]}-{anios[-1]}" if anios else ""
 
+    st.caption(
+        "Cada fold entrena con los años anteriores y valida con el año "
+        f"siguiente (validación {rango}). Los partidos de 2026 quedaron "
+        "reservados para la prueba final."
+    )
 
 # ------------------------------------------------------------
 # Prueba final
 # ------------------------------------------------------------
 
-section_title(
-    "Prueba final",
-    f"{PRUEBA_FINAL_PARTIDOS} partidos de {PRUEBA_FINAL_PERIODO} · Notebooks 07 y 08",
-)
-
-mostrar(
-    data_table_html(
-        ["Modelo", "Accuracy", "F1 macro", "Log loss"],
-        [
-            [m["modelo"], _pct(m["accuracy"]), _num(m["f1_macro"]), _num(m["log_loss"])]
-            for m in PRUEBA_FINAL
-        ],
-        destacar=PRUEBA_FINAL.index(xgb_final),
+if final:
+    section_title(
+        "Prueba final",
+        f"{n_prueba} partidos ({periodo_prueba}) · Notebooks 05 a 08",
     )
-)
 
-mostrar(
-    "<div class='lpf-section__hint' style='margin-top:12px'>"
-    f"Poisson con características: MAE goles local {POISSON_PRUEBA['mae_local']:.4f} · "
-    f"MAE goles visitante {POISSON_PRUEBA['mae_visitante']:.4f}.</div>"
-)
+    filas = []
 
+    if final.get("baseline"):
+        filas.append(
+            [
+                "Baseline (clase más frecuente)",
+                _pct(final["baseline"]["accuracy"]),
+                "-",
+                "-",
+            ]
+        )
+
+    filas += [
+        [
+            m["modelo"],
+            _pct(m["accuracy"]),
+            _num(m["f1_macro"]),
+            _num(m["log_loss"]),
+        ]
+        for m in final["modelos"]
+    ]
+
+    nombres = [f[0] for f in filas]
+
+    mostrar(
+        data_table_html(
+            ["Modelo", "Accuracy", "F1 macro", "Log loss"],
+            filas,
+            destacar=nombres.index("XGBoost") if "XGBoost" in nombres else None,
+        )
+    )
+
+    if poisson:
+        mostrar(
+            "<div class='lpf-section__hint' style='margin-top:12px'>"
+            f"Poisson con características: MAE goles local {poisson['mae_local']:.4f} · "
+            f"MAE goles visitante {poisson['mae_visitante']:.4f}.</div>"
+        )
+
+    st.caption(
+        "El conjunto de prueba nunca entró al entrenamiento ni a la selección "
+        "de hiperparámetros."
+    )
 
 # ------------------------------------------------------------
 # Figuras

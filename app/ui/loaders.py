@@ -14,6 +14,7 @@ from services.feature_service import (
     obtener_temporadas_disponibles,
 )
 from services.liga_service import (
+    acumula_apertura_clausura,
     cargar_calendario,
     construir_clasificacion,
 )
@@ -53,6 +54,11 @@ def obtener_calendario():
 @st.cache_data(show_spinner=False)
 def obtener_clasificacion(temporada):
     return construir_clasificacion(obtener_historico(), temporada)
+
+
+@st.cache_data(show_spinner=False)
+def temporada_acumula_torneos(temporada):
+    return acumula_apertura_clausura(obtener_historico(), temporada)
 
 
 @st.cache_data(show_spinner=False)

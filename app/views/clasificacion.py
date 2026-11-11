@@ -19,6 +19,7 @@ from ui.loaders import (
     obtener_clasificacion,
     obtener_historico,
     obtener_temporadas,
+    temporada_acumula_torneos,
 )
 
 
@@ -85,14 +86,24 @@ metric_row(
     ]
 )
 
-section_title("Posiciones", f"Temporada {temporada}")
+acumulada = temporada_acumula_torneos(temporada)
+
+section_title(
+    "Tabla acumulada (Apertura + Clausura)" if acumulada else "Posiciones",
+    f"Temporada {temporada}",
+)
 
 detalle = (
     "Suma los partidos con resultado registrado en el sistema, sin playoffs. "
     "Desempate: diferencia de goles, goles a favor y orden alfabético; no se "
-    "aplican otros criterios oficiales. En temporadas anuales reúne Apertura "
-    "y Clausura en una sola tabla."
+    "aplican otros criterios oficiales."
 )
+
+if acumulada:
+    detalle += (
+        " Esta temporada reúne Apertura y Clausura en una sola tabla; los "
+        "datos no permiten separarlos."
+    )
 
 try:
     calendario, temporada_cal = obtener_calendario()

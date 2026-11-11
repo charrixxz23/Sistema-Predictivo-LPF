@@ -1,11 +1,16 @@
-"""Resultados de validación ya obtenidos en los notebooks, listos para mostrar.
+"""Resultados de validación exportados por los notebooks, listos para mostrar.
 
-Los valores NO se recalculan aquí: están transcritos de las salidas de los
-notebooks indicados en cada bloque, y las figuras se leen de /figures.
+La aplicación NO calcula ni transcribe métricas: lee
+``data/processed/metricas_validacion.json``, que escriben los notebooks 05 a 09
+(celda final de cada uno). Si el archivo no existe, las funciones devuelven
+``None`` y la interfaz muestra un estado vacío.
+
+Las figuras se leen de /figures.
 """
 
 from datetime import date
 from functools import lru_cache
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -15,71 +20,101 @@ ROOT = Path(__file__).resolve().parents[2]
 
 FIGURES_DIR = ROOT / "figures"
 
-
-# Notebook 09: validación cruzada temporal (ventana expansiva, 6 folds:
-# entrenamiento 2014-2019 -> validación 2020, ..., 2014-2024 -> 2025).
-CV_TEMPORAL = [
-    {
-        "modelo": "Random Forest",
-        "accuracy": 0.4181, "accuracy_sd": 0.0272,
-        "f1_macro": 0.4099, "log_loss": 1.0779, "folds_sobre_baseline": 6,
-    },
-    {
-        "modelo": "Regresión Logística",
-        "accuracy": 0.4028, "accuracy_sd": 0.0326,
-        "f1_macro": 0.3936, "log_loss": 1.0891, "folds_sobre_baseline": 4,
-    },
-    {
-        "modelo": "XGBoost",
-        "accuracy": 0.4016, "accuracy_sd": 0.0345,
-        "f1_macro": 0.3499, "log_loss": 1.0823, "folds_sobre_baseline": 6,
-    },
-]
-
-CV_BASELINE_ACCURACY = 0.3812
-CV_N_FOLDS = 6
-
-
-# Notebooks 07 y 08: prueba final (151 partidos reservados, 2026-01-16 a
-# 2026-09-14: temporadas "2026" y "2026/2027"; nunca entraron al entrenamiento).
-PRUEBA_FINAL = [
-    {"modelo": "Baseline (clase más frecuente)", "accuracy": 0.3709,
-     "f1_macro": None, "log_loss": None},
-    {"modelo": "Regresión Logística", "accuracy": 0.3642,
-     "f1_macro": 0.3673, "log_loss": 1.0910},
-    {"modelo": "Random Forest", "accuracy": 0.3576,
-     "f1_macro": 0.3539, "log_loss": 1.0862},
-    {"modelo": "XGBoost", "accuracy": 0.3974,
-     "f1_macro": 0.3587, "log_loss": 1.0836},
-    {"modelo": "Poisson (resultado derivado)", "accuracy": 0.3709,
-     "f1_macro": 0.2232, "log_loss": 1.0928},
-]
-
-PRUEBA_FINAL_PARTIDOS = 151
-
-PRUEBA_FINAL_PERIODO = "enero a septiembre de 2026"
-
-
-# Corte de entrenamiento de los modelos que carga la app.
-# Los modelos definitivos (XGBoost y Poisson) se ajustaron con entrenamiento +
-# validación (2.075 partidos, hasta el 2025-11-29; notebook 07 celda 81 y
-# notebook 08 celda 77). Se comprobó sobre los .joblib: las medianas del
-# imputador coinciden con las de entrenamiento+validación y no con las de
-# entrenamiento solo ni con las de entrenamiento+validación+prueba, y el
-# escalador de Poisson vio 2.075 muestras.
-FECHA_CORTE_RESPALDO = date(2025, 11, 29)
+METRICAS_JSON = ROOT / "data" / "processed" / "metricas_validacion.json"
 
 VALIDACION_CSV = ROOT / "data" / "processed" / "lpf_validacion.csv"
 
+# Orden de las filas en la tabla de prueba final.
+ORDEN_PRUEBA = [
+    "Regresión Logística",
+    "Random Forest",
+    "XGBoost",
+    "Poisson (resultado derivado)",
+]
 
-@lru_cache(maxsize=1)
+
+@lru_cache(maxsize=4)
+def _leer_json(ruta, mtime_ns):
+    return json.loads(Path(ruta).read_text(encoding="utf-8"))
+
+
+def cargar_metricas():
+    """Contenido del JSON de métricas, o None si falta o no se puede leer."""
+
+    try:
+        return _leer_json(str(METRICAS_JSON), METRICAS_JSON.stat().st_mtime_ns)
+    except (OSError, ValueError):
+        return None
+
+
+def _seccion(*ruta):
+    nodo = cargar_metricas()
+
+    for clave in ruta:
+        if not isinstance(nodo, dict) or clave not in nodo:
+            return None
+
+        nodo = nodo[clave]
+
+    return nodo
+
+
+def metadatos():
+    return _seccion("metadatos") or {}
+
+
+def cv_temporal():
+    """dict con n_folds, baseline_accuracy(_sd) y modelos, o None."""
+
+    datos = _seccion("cv_temporal")
+
+    return datos if datos and datos.get("modelos") else None
+
+
+def prueba_final():
+    """dict con baseline, modelos (en orden de presentación) y el conjunto de
+    prueba (n_partidos, fecha_inicio, fecha_fin), o None."""
+
+    datos = _seccion("prueba_final")
+
+    if not datos or not datos.get("modelos"):
+        return None
+
+    modelos = datos["modelos"]
+
+    ordenados = [
+        {"modelo": nombre, **modelos[nombre]}
+        for nombre in ORDEN_PRUEBA
+        if nombre in modelos
+    ]
+
+    return {
+        "baseline": datos.get("baseline"),
+        "modelos": ordenados,
+        "prueba": metadatos().get("prueba", {}),
+    }
+
+
+def poisson_prueba():
+    return _seccion("poisson_prueba")
+
+
 def fecha_corte_entrenamiento():
     """Última fecha de partido vista en el ajuste definitivo de los modelos.
 
-    Se lee del último partido del conjunto de validación (que se unió al de
-    entrenamiento); si el archivo no está disponible, se usa el valor
-    documentado arriba.
+    Se lee de los metadatos del JSON de métricas. Solo si el JSON no existe
+    (o no trae la fecha) se usa el último partido de lpf_validacion.csv, que
+    es el conjunto que se unió al de entrenamiento. Si tampoco está, devuelve
+    None y la interfaz no muestra indicadores de acierto.
     """
+
+    texto = metadatos().get("fecha_corte_entrenamiento")
+
+    if texto:
+        try:
+            return date.fromisoformat(texto)
+        except ValueError:
+            pass
 
     try:
         fechas = pd.read_csv(
@@ -91,15 +126,7 @@ def fecha_corte_entrenamiento():
 
         return fechas.max().date()
     except (OSError, ValueError, KeyError):
-        return FECHA_CORTE_RESPALDO
-
-# Notebook 08: Poisson con características, prueba final.
-POISSON_PRUEBA = {
-    "mae_local": 0.9557,
-    "mae_visitante": 0.8187,
-    "marcador_exacto": 0.1656,
-    "marcadores_acertados": 25,
-}
+        return None
 
 
 # Figuras agrupadas por pestaña: (archivo, título)

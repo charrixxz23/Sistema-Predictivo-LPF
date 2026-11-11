@@ -139,6 +139,46 @@ def jornada_sugerida(calendario):
     return int(pendientes["jornada"].min())
 
 
+HUECO_TORNEOS_DIAS = 20
+MINIMO_PARTIDOS_POR_TORNEO = 40
+
+
+def acumula_apertura_clausura(historico, temporada):
+    """True si la temporada reúne más de un torneo (Apertura y Clausura).
+
+    Criterio basado en los datos: la columna ``torneo`` trae Apertura y
+    Clausura, o bien el calendario tiene un salto de más de 20 días con al
+    menos 40 partidos a cada lado (receso entre torneos). Una suspensión
+    corta de un solo torneo, como la de 2020, no cumple el mínimo.
+    """
+
+    partidos = historico[historico["temporada"].astype(str) == str(temporada)]
+
+    if "tipo_fase" in partidos.columns:
+        partidos = partidos[partidos["tipo_fase"] != "Playoffs"]
+
+    if partidos.empty:
+        return False
+
+    if "torneo" in partidos.columns:
+        torneos = set(partidos["torneo"].dropna().astype(str))
+
+        if {"Apertura", "Clausura"} <= torneos:
+            return True
+
+    fechas = partidos["fecha_partido"].sort_values().reset_index(drop=True)
+    saltos = fechas.diff().dt.days
+
+    for i in saltos.index[saltos > HUECO_TORNEOS_DIAS]:
+        if (
+            i >= MINIMO_PARTIDOS_POR_TORNEO
+            and len(fechas) - i >= MINIMO_PARTIDOS_POR_TORNEO
+        ):
+            return True
+
+    return False
+
+
 def construir_clasificacion(historico, temporada):
     """Tabla de posiciones de una temporada a partir del histórico.
 
