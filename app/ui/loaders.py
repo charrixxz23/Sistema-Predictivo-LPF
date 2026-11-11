@@ -17,6 +17,8 @@ from services.liga_service import (
     acumula_apertura_clausura,
     cargar_calendario,
     construir_clasificacion,
+    construir_clasificacion_oficial,
+    cruces_si_terminara_hoy,
 )
 from services.model_service import cargar_modelos
 from services.prediction_service import analizar_partido
@@ -54,6 +56,20 @@ def obtener_calendario():
 @st.cache_data(show_spinner=False)
 def obtener_clasificacion(temporada):
     return construir_clasificacion(obtener_historico(), temporada)
+
+
+@st.cache_data(show_spinner=False)
+def obtener_clasificacion_oficial(temporada):
+    """Tablas Este / Oeste / General (o None si la temporada no tiene conferencias)."""
+
+    return construir_clasificacion_oficial(obtener_historico(), temporada)
+
+
+@st.cache_data(show_spinner=False)
+def obtener_cruces_si_terminara_hoy(temporada):
+    tablas = construir_clasificacion_oficial(obtener_historico(), temporada)
+
+    return None if tablas is None else cruces_si_terminara_hoy(tablas)
 
 
 @st.cache_data(show_spinner=False)

@@ -245,10 +245,6 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 .lpf-duelos { display: block; }
 
 .lpf-duelo, .lpf-hist { padding: .7rem 0 .75rem; border-bottom: 1px solid var(--line); }
-.lpf-duelo__banda { display: flex; height: 4px; margin-bottom: .55rem; }
-.lpf-duelo__banda i { flex: 1; background: var(--c1); }
-.lpf-duelo__banda i + i { background: var(--c2); }
-
 .lpf-duelo__linea { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 3.5rem minmax(0, 1fr); align-items: center; gap: .6rem; }
 .lpf-duelo__cuando { display: flex; flex-direction: column; line-height: 1.1; }
 .lpf-duelo__cuando b { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700; }
@@ -264,6 +260,7 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 .lpf-duelo__lado strong { color: var(--ink); }
 .lpf-duelo__pie { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-top: .25rem; color: var(--dim); font-size: var(--fs-sm); }
 .lpf-duelo__pie span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.lpf-conf { display: inline-block; margin-right: .6rem; padding: 0 .45rem; border: 1px solid var(--line-strong); border-radius: 3px; color: var(--muted); font-style: normal; font-size: var(--fs-aux); font-weight: 600; line-height: 1.5; letter-spacing: .02em; }
 
 /* Barra 1X2: color del local, gris del empate y color del visitante.
    El segmento de un club parecido al gris (o a su rival) lleva rayado. */
@@ -290,7 +287,8 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 /* =========================================================
    8. Clasificación y tablas
 ========================================================= */
-.lpf-tabla-wrap { overflow-x: auto; }
+/* El ancho se limita para que, en pantallas anchas, las cifras no queden lejos del nombre */
+.lpf-tabla-wrap { overflow-x: auto; max-width: 62rem; }
 .lpf-tabla { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .lpf-tabla th { padding: .45rem .5rem; color: var(--dim); font-size: var(--fs-aux); font-weight: 600; text-align: center; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
 .lpf-tabla td { padding: .4rem .5rem; text-align: center; border-bottom: 1px solid var(--line); color: var(--muted); font-size: var(--fs-base); }
@@ -298,12 +296,36 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 .lpf-tabla td.club { border-left: 6px solid var(--club); padding-left: .75rem; color: var(--dim); font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md); width: 2.5rem; }
 .lpf-tabla .eq { display: flex; align-items: center; gap: .6rem; color: var(--ink); font-weight: 600; font-size: var(--fs-md); white-space: nowrap; }
 .lpf-tabla .pts { color: var(--ink); font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; }
+/* Forma: letras G, E, P en cuadros pequeños (verde, gris, rojo). El último (más reciente) lleva borde. */
 .lpf-tabla .forma { display: inline-flex; gap: .2rem; }
-.lpf-tabla .forma i { width: 1.15rem; height: .35rem; border-radius: 2px; display: inline-block; }
-.lpf-tabla .forma .G { background: var(--hit-text); }
-.lpf-tabla .forma .E { background: var(--draw); }
-.lpf-tabla .forma .P { background: var(--miss-text); }
+.lpf-tabla .forma i { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; border-radius: 3px; font-style: normal; font-size: var(--fs-aux); font-weight: 700; line-height: 1; box-sizing: border-box; border: 2px solid transparent; color: #FFFFFF; }
+.lpf-tabla .forma .G { background: #1B7A4B; }
+.lpf-tabla .forma .E { background: #8A8F96; color: #17181A; }
+.lpf-tabla .forma .P { background: #B3211F; }
+.lpf-tabla .forma .u { border-color: var(--ink); }
 .lpf-tabla .oculta { display: none; }
+
+/* Zonas de la tabla por conferencia: texto bajo el nombre y línea entre zonas */
+.lpf-tabla .eq__t { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.lpf-tabla .eq__n { font-weight: 600; }
+.lpf-tabla .zona, .lpf-tabla .sr { font-size: var(--fs-aux); font-weight: 600; letter-spacing: .01em; }
+.lpf-tabla .zona--semifinal { color: var(--accent-text); }
+.lpf-tabla .zona--playoff { color: var(--ink); }
+.lpf-tabla .zona--eliminado { color: var(--dim); font-weight: 500; }
+.lpf-tabla .sr { color: var(--miss-text); }
+.lpf-tabla tr.fin-zona td { border-bottom: 2px solid var(--line-strong); }
+.lpf-leyenda b { color: var(--ink); font-style: normal; }
+
+/* Si el torneo terminara hoy */
+.lpf-llave { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 3rem; max-width: 62rem; margin-top: .25rem; }
+.lpf-llave ul { list-style: none; margin: 0; padding: 0; }
+.lpf-llave li { padding: .55rem 0; border-bottom: 1px solid var(--line); }
+.lpf-llave__cruce { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.lpf-llave__cruce em { color: var(--dim); font-style: normal; font-weight: 600; font-size: var(--fs-sm); }
+.lpf-llave__eq { display: inline-flex; align-items: center; gap: .6rem; min-width: 0; }
+.lpf-llave__eq > span { display: flex; flex-direction: column; line-height: 1.15; }
+.lpf-llave__eq b { font-size: var(--fs-md); }
+.lpf-llave__eq small { color: var(--dim); font-size: var(--fs-aux); }
 
 /* Tabla de datos (Modelos): sin franja de club */
 .lpf-tabla--datos td.e { color: var(--ink); font-weight: 600; }
@@ -449,6 +471,9 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
     .lpf-prob3__col b, .lpf-xg3 b { font-size: 2.25rem; }
     .lpf-mapa td { padding: .45rem 0; }
 
+    .lpf-llave { grid-template-columns: 1fr; }
+    .lpf-llave__cruce { flex-direction: column; align-items: flex-start; gap: .25rem; }
+    .lpf-footer { font-size: var(--fs-aux); }
     .lpf-tabla th, .lpf-tabla td { padding: .4rem .3rem; }
     .lpf-tabla .hide-sm { display: none; }
     .lpf-tabla td.club { padding-left: .5rem; }

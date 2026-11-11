@@ -18,6 +18,7 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
+from services.liga_service import etiqueta_conferencia, nombre_torneo
 from services.poisson_service import calcular_matriz_marcadores
 from services.team_assets import obtener_abreviatura, obtener_logo_path
 from ui import team_colors as tc
@@ -29,10 +30,25 @@ from ui import team_colors as tc
 
 NOMBRE_APP = "Pronóstico LPF"
 
+AUTOR = "Richard Smith"
+UNIVERSIDAD = "Universidad Tecnológica de Panamá"
+ANIO_TRABAJO = "2026"
+
 AVISO_PIE = (
-    "Proyecto académico, Universidad Tecnológica de Panamá. "
+    f"Desarrollado por {AUTOR} · Proyecto académico, {UNIVERSIDAD} · "
     "No está afiliado a la Liga Panameña de Fútbol."
 )
+
+# Zonas de la tabla por conferencia (art. 10 y 12 del Anexo II del Reglamento).
+# «Fuera de zona» y no «Eliminado»: a mitad del torneo ningún club lo está aún.
+ZONAS = {
+    "semifinal": "Semifinal directa",
+    "playoff": "Playoff",
+    "eliminado": "Fuera de zona",
+}
+
+# Diferencia (en probabilidad) por debajo de la cual el partido se rotula «parejo».
+UMBRAL_PAREJO = 0.05
 
 RESULTADO_LABELS = {
     "L": "Victoria local",
@@ -67,6 +83,12 @@ _LADO_MAPA = 6  # 0 a 5 goles por equipo
 
 def nombre_corto(equipo):
     return NOMBRES_CORTOS.get(equipo, equipo)
+
+
+def etiqueta_temporada(temporada):
+    """'Apertura 2026 (temporada 2026/2027)' o, sin nombre de torneo, 'Temporada 2025'."""
+
+    return nombre_torneo(temporada) or f"Temporada {temporada}"
 
 
 def porcentaje(valor, decimales=1):
@@ -233,14 +255,30 @@ def foot_note(texto):
 # PARTIDOS: FILA DE DUELO
 # ============================================================
 
-def _etiqueta_pronostico(codigo, local, visitante):
+def es_parejo(probabilidades):
+    """True si los dos desenlaces más probables difieren en menos de 5 puntos."""
+
+    valores = sorted((probabilidades.get(c, 0.0) for c in "LEV"), reverse=True)
+
+    return valores[0] - valores[1] < UMBRAL_PAREJO
+
+
+def frase_pronostico(probabilidades, local, visitante):
+    """Lo más probable, sin afirmar un ganador: la probabilidad máxima suele ser 35-45 %."""
+
+    if es_parejo(probabilidades):
+        return "Partido parejo"
+
+    codigo = max("LEV", key=lambda c: probabilidades.get(c, 0.0))
+    valor = f"{probabilidades.get(codigo, 0.0) * 100:.0f} %"
+
     if codigo == "L":
-        return f"Gana {nombre_corto(local)}"
+        return f"Más probable: victoria de {nombre_corto(local)} ({valor})"
 
     if codigo == "V":
-        return f"Gana {nombre_corto(visitante)}"
+        return f"Más probable: victoria de {nombre_corto(visitante)} ({valor})"
 
-    return "Empate"
+    return f"Más probable: empate ({valor})"
 
 
 def _resultado_real(goles_local, goles_visitante):
@@ -317,9 +355,15 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
 
     estadio = partido.get("estadio") or "Estadio por confirmar"
 
+    conferencia = etiqueta_conferencia(local, visitante, temporada)
+    conf_html = (
+        f"<em class='lpf-conf lpf-conf--{conferencia.lower()}'>{texto_seguro(conferencia)}</em>"
+        if conferencia
+        else ""
+    )
+
     html = (
         f"<article class='lpf-duelo' style='--c1:{c_local};--c2:{c_visita}'>"
-        "<div class='lpf-duelo__banda'><i></i><i></i></div>"
         "<div class='lpf-duelo__linea'>"
         "<div class='lpf-duelo__cuando'>"
         f"<b>{texto_seguro(partido['hora'])}</b><span>{estado}</span></div>"
@@ -350,9 +394,13 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
             else:
                 marca = " · <span class='lpf-marca-no'>✕ No acertó 1X2</span>"
 
+        parejo = es_parejo(probs)
+
         def cifra(codigo, rotulo):
+            # Con la abreviatura y la cifra pegadas («SFC 32 %») no se confunde con «132 %»
             texto = f"{rotulo} {probs.get(codigo, 0.0) * 100:.0f} %"
-            return f"<span><b>{texto}</b></span>" if codigo == pick else f"<span>{texto}</span>"
+            resaltar = codigo == pick and not parejo
+            return f"<span><b>{texto}</b></span>" if resaltar else f"<span>{texto}</span>"
 
         enlace = analyze_href(local, visitante, partido["fecha"], temporada)
 
@@ -360,22 +408,22 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
             "<div class='lpf-duelo__pred'>"
             "<div>"
             f"{_barra_1x2_html(probs, ray_local, ray_visita)}"
-            f"<div class='lpf-1x2__n'>{cifra('L', '1')}{cifra('E', 'X')}{cifra('V', '2')}</div>"
+            f"<div class='lpf-1x2__n'>{cifra('L', obtener_abreviatura(local))}{cifra('E', 'Empate')}{cifra('V', obtener_abreviatura(visitante))}</div>"
             "</div>"
             "<div class='lpf-duelo__lado'>Marcador probable "
             f"<strong>{marcador['local']} - {marcador['visitante']}</strong> "
             f"({porcentaje(prediccion['prob_marcador'])})<br>"
-            f"{texto_seguro(_etiqueta_pronostico(pick, local, visitante))}{marca}</div>"
+            f"{texto_seguro(frase_pronostico(probs, local, visitante))}{marca}</div>"
             "</div>"
             "<div class='lpf-duelo__pie'>"
-            f"<span>{texto_seguro(estadio)}</span>"
+            f"<span>{conf_html}{texto_seguro(estadio)}</span>"
             f"<a class='lpf-enlace' target='_self' href='{escape(enlace)}'>"
             "Analizar a fondo →</a></div>"
         )
     else:
         html += (
             "<div class='lpf-duelo__pie'>"
-            f"<span>{texto_seguro(estadio)}</span></div>"
+            f"<span>{conf_html}{texto_seguro(estadio)}</span></div>"
         )
 
     return html + "</article>"
@@ -389,48 +437,129 @@ def match_grid(filas):
 # TABLA DE CLASIFICACIÓN
 # ============================================================
 
-def standings_table_html(tabla, corto=False, compacta=False):
-    """Tabla de posiciones con una franja del color de cada club."""
+_COLUMNAS_TABLA = (
+    ("pos", ""), ("equipo", "Equipo"), ("pj", "PJ"), ("g", "G"), ("e", "E"),
+    ("p", "P"), ("gf", "GF"), ("gc", "GC"), ("dg", "DG"), ("pts", "Pts"),
+    ("forma", "Forma"),
+)
 
-    detalle = " hide-sm oculta" if compacta else " hide-sm"
+# Columnas de detalle: se ocultan en pantallas pequeñas (y siempre en la tabla compacta)
+_DETALLE = {"g", "e", "p", "gf", "gc", "forma"}
 
-    encabezados = [
-        ("", ""), ("Equipo", "e"), ("PJ", ""), ("G", detalle), ("E", detalle),
-        ("P", detalle), ("GF", detalle), ("GC", detalle), ("DG", ""),
-        ("Pts", ""), ("Forma", detalle),
-    ]
+_LETRAS_FORMA = {"G": "Ganó", "E": "Empató", "P": "Perdió"}
 
-    cabecera = "".join(
-        f"<th class='{clase.strip()}'>{texto}</th>" for texto, clase in encabezados
+TEXTO_EMPATE_SIN_RESOLVER = (
+    "Empate sin resolver (lo definiría el juego limpio o un sorteo)"
+)
+
+
+def form_html(forma):
+    """Últimos partidos como letras G, E, P en cuadros pequeños.
+
+    El orden es del más antiguo (izquierda) al más reciente (derecha); el más
+    reciente lleva un borde oscuro. Verde = G, gris = E, rojo = P, siempre con la letra.
+    """
+
+    forma = list(forma)
+
+    cuadros = "".join(
+        f"<i class='{r}{' u' if n == len(forma) - 1 else ''}' "
+        f"title='{_LETRAS_FORMA.get(r, r)}{' (el más reciente)' if n == len(forma) - 1 else ''}'>"
+        f"{texto_seguro(r)}</i>"
+        for n, r in enumerate(forma)
     )
 
+    resumen = ", ".join(_LETRAS_FORMA.get(r, r) for r in forma)
+
+    return (
+        "<span class='forma' role='img' "
+        f"aria-label='Últimos partidos, del más antiguo al más reciente: {resumen}'>"
+        f"{cuadros}</span>"
+    )
+
+
+def standings_table_html(tabla, corto=False, compacta=False, ocultar=(), zonas=False):
+    """Tabla de posiciones con una franja del color de cada club.
+
+    ocultar: claves de columnas que no se muestran (p. ej. {'gf', 'gc'}).
+    compacta: oculta todas las columnas de detalle (G, E, P, GF, GC, Forma).
+    zonas: si la tabla trae la columna 'zona' (semifinal / playoff / eliminado),
+           la rotula con texto bajo el nombre y separa las zonas con una línea.
+    """
+
+    ocultar = set(ocultar) | (_DETALLE if compacta else set())
+    visibles = [(k, t) for k, t in _COLUMNAS_TABLA if k not in ocultar]
+
+    def clase(clave):
+        extra = " hide-sm" if clave in _DETALLE else ""
+        return ("e" if clave == "equipo" else "") + extra
+
+    cabecera = "".join(
+        f"<th class='{clase(k).strip()}'"
+        + (
+            " title='Últimos 5 partidos; el cuadro con borde es el más reciente'"
+            if k == "forma"
+            else ""
+        )
+        + f">{t}</th>"
+        for k, t in visibles
+    )
+
+    registros = list(tabla.itertuples(index=False))
     filas = []
 
-    for fila in tabla.itertuples(index=False):
+    for n, fila in enumerate(registros):
         dg = f"+{fila.dg}" if fila.dg > 0 else str(fila.dg)
         nombre = nombre_corto(fila.equipo) if corto else fila.equipo
-        forma = "".join(
-            f"<i class='{r}' title='{r}'></i>" for r in fila.forma
-        )
         club = tc.colores_club(fila.equipo)["primario"]
 
+        zona = getattr(fila, "zona", None) if zonas else None
+        sin_resolver = bool(getattr(fila, "sin_resolver", False))
+        siguiente = (
+            getattr(registros[n + 1], "zona", None) if zonas and n + 1 < len(registros) else zona
+        )
+
+        rotulos = ""
+
+        if zona:
+            rotulos += f"<small class='zona zona--{zona}'>{ZONAS.get(zona, '')}</small>"
+
+        if sin_resolver:
+            rotulos += (
+                f"<small class='sr' title='{texto_seguro(TEXTO_EMPATE_SIN_RESOLVER)}'>"
+                "Empate sin resolver</small>"
+            )
+
+        nombre_html = (
+            f"<span class='eq__t'><span class='eq__n'>{texto_seguro(nombre)}</span>{rotulos}</span>"
+            if rotulos
+            else f"<span>{texto_seguro(nombre)}</span>"
+        )
+
+        celdas = {
+            "pos": f"<td class='club'>{fila.pos}</td>",
+            "equipo": (
+                "<td class='e'>"
+                f"<div class='eq' title='{texto_seguro(fila.equipo)}'>"
+                f"{team_crest_html(fila.equipo)}{nombre_html}</div></td>"
+            ),
+            "pj": f"<td>{fila.pj}</td>",
+            "g": f"<td class='hide-sm'>{fila.g}</td>",
+            "e": f"<td class='hide-sm'>{fila.e}</td>",
+            "p": f"<td class='hide-sm'>{fila.p}</td>",
+            "gf": f"<td class='hide-sm'>{fila.gf}</td>",
+            "gc": f"<td class='hide-sm'>{fila.gc}</td>",
+            "dg": f"<td>{dg}</td>",
+            "pts": f"<td class='pts'>{fila.pts}</td>",
+            "forma": f"<td class='hide-sm'>{form_html(fila.forma)}</td>",
+        }
+
+        fin_zona = " fin-zona" if zonas and siguiente != zona else ""
+
         filas.append(
-            f"<tr style='--club:{club}'>"
-            f"<td class='club'>{fila.pos}</td>"
-            "<td class='e'>"
-            f"<div class='eq' title='{texto_seguro(fila.equipo)}'>"
-            f"{team_crest_html(fila.equipo)}"
-            f"<span>{texto_seguro(nombre)}</span></div></td>"
-            f"<td>{fila.pj}</td>"
-            f"<td class='{detalle.strip()}'>{fila.g}</td>"
-            f"<td class='{detalle.strip()}'>{fila.e}</td>"
-            f"<td class='{detalle.strip()}'>{fila.p}</td>"
-            f"<td class='{detalle.strip()}'>{fila.gf}</td>"
-            f"<td class='{detalle.strip()}'>{fila.gc}</td>"
-            f"<td>{dg}</td>"
-            f"<td class='pts'>{fila.pts}</td>"
-            f"<td class='{detalle.strip()}'><span class='forma'>{forma}</span></td>"
-            "</tr>"
+            f"<tr class='{fin_zona.strip()}' style='--club:{club}'>"
+            + "".join(celdas[k] for k, _ in visibles)
+            + "</tr>"
         )
 
     return (
@@ -440,8 +569,78 @@ def standings_table_html(tabla, corto=False, compacta=False):
     )
 
 
-def standings_table(tabla, corto=False, compacta=False):
-    mostrar(standings_table_html(tabla, corto, compacta))
+def standings_table(tabla, corto=False, compacta=False, ocultar=(), zonas=False):
+    mostrar(standings_table_html(tabla, corto, compacta, ocultar, zonas))
+
+
+def empates_sin_resolver(tabla):
+    """Nombres de los equipos con empate sin resolver en una tabla (lista vacía si no hay)."""
+
+    if "sin_resolver" not in tabla.columns:
+        return []
+
+    return tabla.loc[tabla["sin_resolver"].astype(bool), "equipo"].tolist()
+
+
+def zone_legend_html():
+    return (
+        "<p class='lpf-nota-pie lpf-leyenda'>"
+        "<b>Semifinal directa</b>: 1.º de cada conferencia · "
+        "<b>Playoff</b>: 2.º y 3.º (partido único; el 2.º juega de local) · "
+        "<b>Fuera de zona</b>: 4.º a 6.º. Posiciones según la tabla de hoy."
+        "</p>"
+    )
+
+
+def bracket_html(cruces, completa=False):
+    """Bloque «Si el torneo terminara hoy»: ordena la tabla actual, no simula nada."""
+
+    def equipo(nombre, pos, conf):
+        return (
+            "<span class='lpf-llave__eq'>"
+            f"{team_crest_html(nombre)}"
+            f"<span><b>{texto_seguro(nombre_corto(nombre))}</b>"
+            f"<small>{pos}.º {texto_seguro(conf)}</small></span></span>"
+        )
+
+    directos = "".join(
+        f"<li>{equipo(x['equipo'], 1, x['conferencia'])}</li>"
+        for x in cruces["semifinal_directa"]
+    )
+
+    playoffs = "".join(
+        "<li class='lpf-llave__cruce'>"
+        f"{equipo(x['local'], x['local_pos'], x['local_conferencia'])}"
+        "<em>vs</em>"
+        f"{equipo(x['visitante'], x['visitante_pos'], x['visitante_conferencia'])}"
+        "</li>"
+        for x in cruces["playoff"]
+    )
+
+    notas = [
+        "Solo ordena la tabla de hoy según el Reglamento (art. 10 y 12): no es una "
+        "predicción ni una simulación."
+    ]
+
+    if not completa:
+        notas.append("Aún faltan partidos de la fase de clasificación: los cruces pueden cambiar.")
+
+    if cruces.get("incierto"):
+        notas.append(
+            "Hay un empate sin resolver entre los cuatro primeros de una conferencia; "
+            "el orden mostrado es provisional."
+        )
+
+    return (
+        "<section class='lpf-llave'>"
+        "<div><h3 class='lpf-subseccion'>Semifinal directa</h3>"
+        f"<ul>{directos}</ul></div>"
+        "<div><h3 class='lpf-subseccion'>Playoff · partido único</h3>"
+        f"<ul>{playoffs}</ul>"
+        "<p class='lpf-nota-pie'>El 2.º de cada conferencia juega de local.</p></div>"
+        "</section>"
+        f"<p class='lpf-nota-pie'>{texto_seguro(' '.join(notas))}</p>"
+    )
 
 
 # ============================================================
@@ -487,7 +686,7 @@ def versus_html(local, visitante, temporada, fecha):
         f"<div class='lpf-vs' style='--c1:{c_local};--c2:{c_visita}'>"
         f"{lados[0]}{lados[1]}<div class='lpf-vs__centro'>VS</div></div>"
         f"<div class='lpf-vs__fuera'>{fuera[0]}{fuera[1]}</div>"
-        f"<p class='lpf-vs__meta'>Temporada {texto_seguro(temporada)} · "
+        f"<p class='lpf-vs__meta'>{texto_seguro(etiqueta_temporada(temporada))} · "
         f"{fecha.strftime('%d/%m/%Y')}</p>"
         "</section>"
     )
@@ -652,11 +851,10 @@ def history_cards_html(registros):
 
         filas.append(
             f"<article class='lpf-hist' style='--c1:{c_local};--c2:{c_visita}'>"
-            "<div class='lpf-duelo__banda'><i></i><i></i></div>"
             "<div class='lpf-hist__linea'>"
             "<div class='lpf-hist__cuando'>"
             f"<b>{texto_seguro(formatear_fecha(registro.get('fecha_partido')))}</b>"
-            f"<span>Temporada {texto_seguro(registro.get('temporada'))}</span></div>"
+            f"<span>{texto_seguro(etiqueta_temporada(registro.get('temporada')))}</span></div>"
             "<div class='lpf-hist__partido'>"
             f"<span class='lpf-hist__eq' title='{texto_seguro(local)}'>"
             f"{team_crest_html(local)}{texto_seguro(nombre_corto(local))}</span>"

@@ -10,6 +10,7 @@ from ui.components import (
     day_heading,
     empty_state,
     error_state,
+    etiqueta_temporada,
     foot_note,
     match_card_html,
     match_grid,
@@ -55,7 +56,7 @@ def _mover_jornada(paso):
 
 
 page_header(
-    f"Calendario · Temporada {temporada}",
+    f"Calendario · {etiqueta_temporada(temporada)}",
     "Elige una jornada para ver sus partidos, horarios (hora de Panamá) y la "
     "predicción de cada encuentro.",
 )

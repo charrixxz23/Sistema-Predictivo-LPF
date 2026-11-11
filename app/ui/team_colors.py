@@ -5,12 +5,17 @@ Primario y secundario salen de los píxeles reales de cada escudo en app/assets/
 secundario porque no se vería sobre el fondo papel.
 
 Reglas de visualización de un partido:
-1. Si los primarios de local y visitante se parecen (ΔE < 20, CIE76), el visitante
-   usa su secundario; si aun así se parecen, el visitante lleva patrón rayado.
-2. En la barra 1X2, el color de un club tampoco puede parecerse al gris del empate
-   (ΔE < 20): en ese caso su segmento lleva patrón rayado.
+1. Si los primarios de local y visitante se parecen (ΔE2000 < UMBRAL_DE00), el
+   visitante usa su secundario; si aun así se parecen, el visitante lleva patrón
+   rayado.
+2. En la barra 1X2, el color de un club tampoco puede parecerse al gris del empate:
+   en ese caso su segmento lleva patrón rayado.
 3. El texto sobre el color de un club debe cumplir contraste AA (4,5:1); si ninguna
    tinta lo cumple, el texto va fuera del color.
+
+La diferencia de color es CIEDE2000. CIE76 sobreestimaba la distancia entre azules
+oscuros (Plaza Amador y Veraguas: ΔE76 = 29,5 frente a ΔE2000 = 8,1) y no detectaba
+que se vieran casi iguales.
 """
 
 import math
@@ -34,7 +39,16 @@ TEAM_COLORS = {
 NEUTRO = {"primario": "#7C8793", "secundario": "#B5BCC4"}
 
 GRIS_EMPATE = "#8A8F96"
-UMBRAL_DE = 20.0
+
+# Umbrales (CIEDE2000). Dos colores con ΔE2000 menor que UMBRAL_DE00 se confunden
+# como segmentos contiguos de una barra delgada. Para el gris del empate hay una
+# segunda condición: un color casi sin croma (neutro) se confunde con él hasta
+# UMBRAL_GRIS_NEUTRO, porque solo difiere en luminosidad; uno cromático (el celeste
+# de UMECIT, ΔE2000 = 19,9) no.
+UMBRAL_DE00 = 12.0
+UMBRAL_GRIS_NEUTRO = 25.0
+CROMA_NEUTRO = 12.0
+
 TINTA_CLARA, TINTA_OSCURA = "#FFFFFF", "#141517"
 
 
@@ -68,8 +82,70 @@ def _lab(hex_):
 
 
 def delta_e(a, b):
-    """Diferencia de color CIE76 entre dos colores #RRGGBB."""
+    """Diferencia de color CIE76 entre dos colores #RRGGBB (solo referencia)."""
     return math.dist(_lab(a), _lab(b))
+
+
+def delta_e00(a, b):
+    """Diferencia de color CIEDE2000 (Sharma, Wu y Dalal, 2005) entre dos #RRGGBB."""
+
+    l1, a1, b1 = _lab(a)
+    l2, a2, b2 = _lab(b)
+
+    c1, c2 = math.hypot(a1, b1), math.hypot(a2, b2)
+    cm = (c1 + c2) / 2
+    g = 0.5 * (1 - math.sqrt(cm ** 7 / (cm ** 7 + 25 ** 7)))
+
+    a1p, a2p = (1 + g) * a1, (1 + g) * a2
+    c1p, c2p = math.hypot(a1p, b1), math.hypot(a2p, b2)
+    h1p = math.degrees(math.atan2(b1, a1p)) % 360
+    h2p = math.degrees(math.atan2(b2, a2p)) % 360
+
+    dl, dc = l2 - l1, c2p - c1p
+
+    if c1p * c2p == 0:
+        dh = 0.0
+    else:
+        d = h2p - h1p
+        dh = d if abs(d) <= 180 else d - 360 * (1 if d > 0 else -1)
+
+    dhh = 2 * math.sqrt(c1p * c2p) * math.sin(math.radians(dh / 2))
+
+    lm, cmp_ = (l1 + l2) / 2, (c1p + c2p) / 2
+
+    if c1p * c2p == 0:
+        hm = h1p + h2p
+    elif abs(h1p - h2p) <= 180:
+        hm = (h1p + h2p) / 2
+    else:
+        hm = (h1p + h2p + 360) / 2 if h1p + h2p < 360 else (h1p + h2p - 360) / 2
+
+    t = (
+        1
+        - 0.17 * math.cos(math.radians(hm - 30))
+        + 0.24 * math.cos(math.radians(2 * hm))
+        + 0.32 * math.cos(math.radians(3 * hm + 6))
+        - 0.20 * math.cos(math.radians(4 * hm - 63))
+    )
+    dtheta = 30 * math.exp(-(((hm - 275) / 25) ** 2))
+    rc = 2 * math.sqrt(cmp_ ** 7 / (cmp_ ** 7 + 25 ** 7))
+    sl = 1 + 0.015 * (lm - 50) ** 2 / math.sqrt(20 + (lm - 50) ** 2)
+    sc = 1 + 0.045 * cmp_
+    sh = 1 + 0.015 * cmp_ * t
+    rt = -math.sin(math.radians(2 * dtheta)) * rc
+
+    return math.sqrt(
+        (dl / sl) ** 2
+        + (dc / sc) ** 2
+        + (dhh / sh) ** 2
+        + rt * (dc / sc) * (dhh / sh)
+    )
+
+
+def croma(color):
+    """Croma (saturación percibida) de un color #RRGGBB en CIELAB."""
+    _, a, b = _lab(color)
+    return math.hypot(a, b)
 
 
 def mezclar(a, b, t):
@@ -88,8 +164,15 @@ def tinta_sobre(color):
     return mejor, contraste(color, mejor) >= 4.5
 
 
+def se_parecen(a, b):
+    """True si dos colores se confunden como segmentos contiguos de una barra."""
+    return delta_e00(a, b) < UMBRAL_DE00
+
+
 def parecido_al_empate(color):
-    return delta_e(color, GRIS_EMPATE) < UMBRAL_DE
+    d = delta_e00(color, GRIS_EMPATE)
+
+    return d < UMBRAL_DE00 or (croma(color) < CROMA_NEUTRO and d < UMBRAL_GRIS_NEUTRO)
 
 
 def colores_partido(local, visitante):
@@ -97,12 +180,12 @@ def colores_partido(local, visitante):
     cl = colores_club(local)["primario"]
     cv = colores_club(visitante)["primario"]
 
-    if delta_e(cl, cv) >= UMBRAL_DE:
+    if not se_parecen(cl, cv):
         return cl, cv, False
 
     cv2 = colores_club(visitante)["secundario"]
 
-    if delta_e(cl, cv2) >= UMBRAL_DE:
+    if not se_parecen(cl, cv2):
         return cl, cv2, False
 
     return cl, cv, True

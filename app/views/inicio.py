@@ -5,30 +5,30 @@ import streamlit as st
 from services.liga_service import jornada_sugerida
 from services.reporte_service import fecha_corte_entrenamiento
 from ui.components import (
-    data_line,
     day_heading,
     empty_state,
     error_state,
+    etiqueta_temporada,
     match_card_html,
     match_grid,
+    mostrar,
     page_header,
     section_title,
     skeleton_html,
     standings_table,
+    zone_legend_html,
 )
 from ui.loaders import (
-    leer_historial,
     obtener_calendario,
     obtener_clasificacion,
+    obtener_clasificacion_oficial,
     obtener_historico,
-    obtener_temporadas,
     predecir_partido_calendario,
 )
 
 
 try:
-    historico = obtener_historico()
-    temporadas = obtener_temporadas()
+    obtener_historico()
     calendario, temporada_cal = obtener_calendario()
 except Exception as exc:
     page_header("Inicio")
@@ -59,7 +59,7 @@ pendientes = int((partidos["estado"] == "pendiente").sum())
 
 page_header(
     f"Jornada {jornada} de {total_jornadas}",
-    f"{len(partidos)} partidos · {pendientes} pendientes · Temporada {temporada_cal}",
+    f"{len(partidos)} partidos · {pendientes} pendientes · {etiqueta_temporada(temporada_cal)}",
 )
 
 partidos_col, tabla_col = st.columns([3, 2], gap="large")
@@ -119,34 +119,33 @@ with partidos_col:
 # ------------------------------------------------------------
 
 with tabla_col:
-    section_title("Clasificación", f"Temporada {temporada_cal}")
+    section_title("Clasificación", "Fase de clasificación")
 
-    tabla = obtener_clasificacion(temporada_cal)
+    oficial = obtener_clasificacion_oficial(temporada_cal)
 
-    if tabla.empty:
-        empty_state(
-            "Sin partidos jugados todavía",
-            "La tabla aparecerá cuando haya resultados registrados.",
-            icono="🏆",
-        )
+    if oficial is not None and not oficial["General"].empty:
+        # Temporada con conferencias: las dos tablas (6 + 6) con sus zonas
+        for conferencia in ("Este", "Oeste"):
+            mostrar(f"<h3 class='lpf-subseccion'>Conferencia {conferencia}</h3>")
+            standings_table(
+                oficial[conferencia], corto=True, compacta=True, zonas=True
+            )
+
+        mostrar(zone_legend_html())
     else:
-        standings_table(tabla.head(8), corto=True, compacta=True)
+        tabla = obtener_clasificacion(temporada_cal)
+
+        if tabla.empty:
+            empty_state(
+                "Sin partidos jugados todavía",
+                "La tabla aparecerá cuando haya resultados registrados.",
+                icono="🏆",
+            )
+        else:
+            standings_table(tabla.head(8), corto=True, compacta=True)
 
     st.page_link(
         "views/clasificacion.py",
         label="Ver tabla completa",
         icon=":material/leaderboard:",
-    )
-
-    section_title("Resumen de la base")
-
-    registros, _ = leer_historial(100000)
-
-    data_line(
-        [
-            (f"{len(historico):,}", "partidos en la base (2014-2026)"),
-            (str(len(temporadas)), "temporadas con datos para modelado"),
-            (str(total_jornadas), f"jornadas en el calendario {temporada_cal}"),
-            (str(len(registros)), "análisis guardados"),
-        ]
     )

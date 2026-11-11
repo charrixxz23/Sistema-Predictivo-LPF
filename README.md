@@ -88,6 +88,10 @@ Los notebooks documentan el proceso completo:
 
 El repositorio ignora entornos virtuales, archivos `.env`, credenciales, caches, checkpoints de notebooks, bases SQLite locales y copias de respaldo. Los datasets y modelos entrenados se conservan dentro del proyecto porque forman parte del entregable reproducible.
 
+## Autor
+
+Richard Smith. Proyecto academico, Universidad Tecnologica de Panama (2026). No esta afiliado a la Liga Panamena de Futbol.
+
 ## Licencia
 
 Proyecto academico desarrollado para fines de investigacion y tesis.

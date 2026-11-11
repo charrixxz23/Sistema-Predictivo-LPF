@@ -13,6 +13,9 @@ from services.reporte_service import (
     ruta_figura,
 )
 from ui.components import (
+    ANIO_TRABAJO,
+    AUTOR,
+    UNIVERSIDAD,
     data_line,
     data_table_html,
     empty_state,
@@ -24,7 +27,13 @@ from ui.components import (
     section_title,
     spec_sheet_html,
 )
-from ui.loaders import obtener_modelos
+from ui.loaders import (
+    leer_historial,
+    obtener_calendario,
+    obtener_historico,
+    obtener_modelos,
+    obtener_temporadas,
+)
 
 
 MODELO_APP = "XGBoost"
@@ -196,6 +205,41 @@ if ficha:
     mostrar(spec_sheet_html(ficha))
 
 # ------------------------------------------------------------
+# Resumen de la base (antes en Inicio)
+# ------------------------------------------------------------
+
+section_title("Resumen de la base", "Datos con que trabaja la aplicación")
+
+try:
+    historico = obtener_historico()
+    temporadas = obtener_temporadas()
+    calendario, temporada_cal = obtener_calendario()
+    registros, _ = leer_historial(100000)
+
+    anios = historico["fecha_partido"].dt.year
+
+    data_line(
+        [
+            (
+                f"{len(historico):,}",
+                f"partidos en la base ({int(anios.min())}-{int(anios.max())})",
+            ),
+            (str(len(temporadas)), "temporadas con datos para modelado"),
+            (
+                str(int(calendario["jornada"].max())),
+                f"jornadas en el calendario {temporada_cal}",
+            ),
+            (str(len(registros)), "análisis guardados"),
+        ]
+    )
+except Exception:
+    empty_state(
+        "Resumen no disponible",
+        "No se pudieron leer los datos de la base.",
+        icono="📊",
+    )
+
+# ------------------------------------------------------------
 # Validación cruzada temporal: tabla, texto y gráfico por fold
 # ------------------------------------------------------------
 
@@ -312,3 +356,21 @@ for pestana, (nombre, figuras) in zip(pestanas, FIGURAS.items()):
         for i, (ruta, titulo) in enumerate(disponibles):
             with columnas[i % len(columnas)]:
                 st.image(str(ruta), caption=titulo, width="stretch")
+
+# ------------------------------------------------------------
+# Ficha del trabajo
+# ------------------------------------------------------------
+
+section_title("Ficha del trabajo", "Autoría")
+
+mostrar(
+    spec_sheet_html(
+        [
+            ("Trabajo", "Pronóstico LPF: sistema predictivo de partidos de la Liga Panameña de Fútbol"),
+            ("Autor", AUTOR),
+            ("Universidad", UNIVERSIDAD),
+            ("Año", ANIO_TRABAJO),
+            ("Naturaleza", "Proyecto académico; no está afiliado a la Liga Panameña de Fútbol"),
+        ]
+    )
+)

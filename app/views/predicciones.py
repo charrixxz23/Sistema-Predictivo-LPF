@@ -5,6 +5,7 @@ from datetime import date
 import streamlit as st
 
 from services.database_service import guardar_prediccion
+from services.liga_service import nombre_torneo
 from services.prediction_service import analizar_partido
 from services.team_assets import EQUIPOS_ACTIVOS
 from ui.components import (
@@ -139,7 +140,12 @@ with st.container(key="match-controls"):
     meta_col, fecha_col = st.columns([1, 1], gap="large", vertical_alignment="bottom")
 
     with meta_col:
-        temporada = st.selectbox("Temporada", temporadas, key="pred_temporada")
+        temporada = st.selectbox(
+            "Temporada",
+            temporadas,
+            key="pred_temporada",
+            format_func=lambda t: nombre_torneo(t) or str(t),
+        )
 
     with fecha_col:
         fecha_partido = st.date_input("Fecha del partido", key="pred_fecha")
