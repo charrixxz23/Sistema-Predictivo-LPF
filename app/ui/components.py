@@ -137,15 +137,20 @@ def mostrar(markup):
 # ESCUDOS
 # ============================================================
 
+# Lado (px) de la miniatura según el tamaño en pantalla: el doble del tamaño CSS
+# más grande de cada uso, para que no se vea borrosa en pantallas de alta densidad.
+_LADO_MINIATURA = {"sm": 96, "md": 96, "duelo": 96, "lg": 192}
+
+
 @lru_cache(maxsize=None)
 def _miniatura_base64(ruta, lado=96):
-    """Escudo reducido como data-URI (evita incrustar PNG de 200 KB)."""
+    """Escudo reducido desde el original como data-URI (evita incrustar PNG de 200 KB)."""
 
     with Image.open(ruta) as imagen:
         imagen = imagen.convert("RGBA")
-        imagen.thumbnail((lado, lado))
-        # Paleta reducida: ~4x menos bytes por escudo, indistinguible a 28-112 px.
-        imagen = imagen.quantize(colors=192, method=Image.Quantize.FASTOCTREE)
+        imagen.thumbnail((lado, lado), Image.Resampling.LANCZOS)
+        # Paleta de 256 colores: ~4x menos bytes por escudo, sin pérdida visible.
+        imagen = imagen.quantize(colors=256, method=Image.Quantize.FASTOCTREE)
         buffer = BytesIO()
         imagen.save(buffer, format="PNG", optimize=True)
 
@@ -159,7 +164,7 @@ def team_crest_html(equipo, tamano="sm"):
 
     if ruta is not None:
         try:
-            datos = _miniatura_base64(str(ruta))
+            datos = _miniatura_base64(str(ruta), _LADO_MINIATURA.get(tamano, 96))
             return (
                 f"<span class='lpf-crest lpf-crest--{tamano}'>"
                 f"<img alt='Escudo de {texto_seguro(equipo)}' "
@@ -369,10 +374,10 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
         f"<b>{texto_seguro(partido['hora'])}</b><span>{estado}</span></div>"
         f"<div class='lpf-duelo__local' title='{texto_seguro(local)}'>"
         f"<span class='lpf-duelo__n'>{texto_seguro(nombre_corto(local))}</span>"
-        f"{team_crest_html(local)}</div>"
+        f"{team_crest_html(local, 'duelo')}</div>"
         f"{centro}"
         f"<div class='lpf-duelo__visita' title='{texto_seguro(visitante)}'>"
-        f"{team_crest_html(visitante)}"
+        f"{team_crest_html(visitante, 'duelo')}"
         f"<span class='lpf-duelo__n'>{texto_seguro(nombre_corto(visitante))}</span></div>"
         "</div>"
     )

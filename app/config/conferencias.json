@@ -3,8 +3,13 @@
   "fuente": "Reglamento de Competencias de la LPF, enero de 2026 (v2), Anexo II, artículos 8 a 12.",
   "plazas": {
     "_comentario": "Posiciones de cada conferencia al final de la fase de clasificación (art. 10).",
-    "semifinal_directa": [1],
-    "playoff": [2, 3]
+    "semifinal_directa": [
+      1
+    ],
+    "playoff": [
+      2,
+      3
+    ]
   },
   "partidos_por_equipo": 16,
   "temporadas": {
@@ -12,17 +17,47 @@
       "torneo": "Clausura 2026",
       "confirmacion": "Anexo II, art. 1 y 3: el anexo rige para el Torneo Clausura 2026 de la LPF (12 clubes); los datos de la temporada 2026 (16-ene a 23-may de 2026) traen 96 partidos de fase de clasificación y 7 de fase final.",
       "conferencias": {
-        "Este": ["Alianza", "Plaza Amador", "UMECIT", "Sporting San Miguelito", "Tauro", "Árabe Unido"],
-        "Oeste": ["Veraguas", "CA Independiente de La Chorrera", "San Francisco FC", "Unión Coclé", "Universitario", "Herrera"]
+        "Este": [
+          "Alianza",
+          "Plaza Amador",
+          "UMECIT",
+          "Sporting San Miguelito",
+          "Tauro",
+          "Árabe Unido"
+        ],
+        "Oeste": [
+          "Veraguas",
+          "CA Independiente de La Chorrera",
+          "San Francisco FC",
+          "Unión Coclé",
+          "Universitario",
+          "Herrera"
+        ]
       }
     },
     "2026/2027": {
       "torneo": "Apertura 2026",
-      "confirmacion": "El nombre del torneo no figura en el reglamento ni en los datos; lo indicó la autora. El formato (conferencias, 16 partidos, interconferencia en las jornadas 6 a 11) sí se verificó en el calendario del archivo de partidos.",
+      "confirmacion": "Formato verificado en el calendario (conferencias, 16 partidos, interconferencia en las jornadas 6 a 11) y fecha de inicio verificada en los datos (ver fuente_fecha_inicio). El nombre «Apertura 2026» no figura en el reglamento ni en los datos; lo indicó la autora.",
       "conferencias": {
-        "Este": ["Alianza", "Plaza Amador", "UMECIT", "Sporting San Miguelito", "Tauro", "Árabe Unido"],
-        "Oeste": ["Veraguas", "CA Independiente de La Chorrera", "San Francisco FC", "Unión Coclé", "Universitario", "Herrera"]
-      }
+        "Este": [
+          "Alianza",
+          "Plaza Amador",
+          "UMECIT",
+          "Sporting San Miguelito",
+          "Tauro",
+          "Árabe Unido"
+        ],
+        "Oeste": [
+          "Veraguas",
+          "CA Independiente de La Chorrera",
+          "San Francisco FC",
+          "Unión Coclé",
+          "Universitario",
+          "Herrera"
+        ]
+      },
+      "fecha_inicio": "2026-07-24",
+      "fuente_fecha_inicio": "Calendario del archivo data/raw/partidos/panama-lpf-matches-2026-to-2027-stats.csv: la jornada 1 se jugó del 24 al 27 de julio de 2026 (primer partido el 24 de julio de 2026, 20:30 hora de Panamá; los 6 partidos con resultado). Coincide con la fecha de inicio del Apertura 2026 indicada por la autora; el reglamento no la menciona."
     }
   }
 }

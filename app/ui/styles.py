@@ -232,6 +232,10 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 .lpf-crest img { width: 84%; height: 84%; object-fit: contain; }
 .lpf-crest--sm { width: 1.75rem; height: 1.75rem; }
 .lpf-crest--md { width: 2.25rem; height: 2.25rem; }
+/* Filas de partido: 48 px (36 px en móvil), sin círculo: los escudos tienen fondo transparente */
+.lpf-crest--duelo { width: 3rem; height: 3rem; background: transparent; border: 0; border-radius: 0; overflow: visible; }
+.lpf-crest--duelo img { width: 100%; height: 100%; }
+.lpf-crest--duelo.lpf-crest--fallback { background: var(--paper2); border-radius: 50%; font-size: var(--fs-md); }
 .lpf-crest--lg { width: 7rem; height: 7rem; }
 .lpf-crest--fallback { background: var(--paper2); color: var(--muted); font-family: var(--font-display); font-weight: 700; }
 .lpf-crest--sm.lpf-crest--fallback { font-size: var(--fs-aux); }
@@ -463,6 +467,7 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 
     .lpf-vs { min-height: 12rem; }
     .lpf-crest--lg { width: 4.75rem; height: 4.75rem; }
+    .lpf-crest--duelo { width: 2.25rem; height: 2.25rem; }
     .lpf-vs__nombre, .lpf-vs__fuera { font-size: var(--fs-lg); }
     .lpf-vs__lado { padding: 1rem .5rem; }
     .lpf-vs__centro { width: 2.5rem; height: 2.5rem; font-size: var(--fs-sm); }
@@ -472,6 +477,8 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
     .lpf-mapa td { padding: .45rem 0; }
 
     .lpf-llave { grid-template-columns: 1fr; }
+    .lpf-duelo__pie { flex-wrap: wrap; gap: .25rem 1rem; }
+    .lpf-duelo__pie span { white-space: normal; overflow: visible; }
     .lpf-llave__cruce { flex-direction: column; align-items: flex-start; gap: .25rem; }
     .lpf-footer { font-size: var(--fs-aux); }
     .lpf-tabla th, .lpf-tabla td { padding: .4rem .3rem; }
