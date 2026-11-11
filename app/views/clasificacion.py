@@ -27,7 +27,7 @@ try:
     historico = obtener_historico()
     temporadas = obtener_temporadas()
 except Exception as exc:
-    page_header("Clasificación", "Tabla de posiciones")
+    page_header("Clasificación")
     error_state(
         "No se pudieron cargar los datos",
         "Revisa que exista data/processed/lpf_historico_modelado.csv.",
@@ -36,7 +36,6 @@ except Exception as exc:
     st.stop()
 
 page_header(
-    "Clasificación",
     "Tabla de posiciones",
     "Acumulado de la temporada a partir de los resultados registrados. "
     "Orden: puntos, diferencia de goles y goles a favor.",
@@ -68,9 +67,9 @@ mejor_defensa = tabla.sort_values("gc", ascending=True).iloc[0]
 
 metric_row(
     [
-        ("Líder", lider["equipo"], f"{lider['pts']} puntos en {lider['pj']} partidos", "accent"),
+        ("Líder", lider["equipo"], f"{lider['pts']} puntos en {lider['pj']} partidos", "brand"),
         ("Partidos jugados", str(partidos), f"{goles} goles anotados", ""),
-        ("Goles por partido", f"{promedio:.2f}", "Promedio de la temporada", "gold"),
+        ("Goles por partido", f"{promedio:.2f}", "Promedio de la temporada", ""),
         (
             "Mejor ataque",
             mejor_ataque["equipo"],

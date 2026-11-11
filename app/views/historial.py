@@ -19,8 +19,7 @@ from ui.loaders import leer_historial, preparar_base_datos
 
 
 page_header(
-    "Historial",
-    "Análisis guardados",
+    "Historial de análisis",
     "Cada análisis ejecutado en la sección Predicciones queda registrado "
     "en la base SQLite local.",
 )
@@ -58,7 +57,7 @@ equipos = pd.concat([df["equipo_local"], df["equipo_visitante"]]).value_counts()
 
 metric_row(
     [
-        ("Análisis guardados", str(len(df)), "Total en la base local", "accent"),
+        ("Análisis guardados", str(len(df)), "Total en la base local", "brand"),
         (
             "Pronósticos locales",
             str(int(conteo.get("L", 0))),
@@ -69,7 +68,7 @@ metric_row(
             "Equipo más consultado",
             str(equipos.index[0]),
             f"{int(equipos.iloc[0])} análisis",
-            "gold",
+            "",
         ),
         (
             "Último análisis",

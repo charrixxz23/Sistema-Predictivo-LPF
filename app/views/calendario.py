@@ -22,7 +22,7 @@ from ui.loaders import obtener_calendario, predecir_partido_calendario
 try:
     calendario, temporada = obtener_calendario()
 except Exception as exc:
-    page_header("Calendario", "Jornadas")
+    page_header("Calendario")
     error_state(
         "No se pudo cargar el calendario",
         "Revisa que exista un archivo de partidos en data/raw/partidos.",
@@ -31,7 +31,7 @@ except Exception as exc:
     st.stop()
 
 if calendario.empty:
-    page_header("Calendario", "Jornadas")
+    page_header("Calendario")
     empty_state(
         "Sin partidos programados",
         "El archivo de calendario no contiene jornadas.",
@@ -55,8 +55,7 @@ def _mover_jornada(paso):
 
 
 page_header(
-    "Calendario",
-    f"Jornadas · Temporada {temporada}",
+    f"Calendario · Temporada {temporada}",
     "Elige una jornada para ver sus partidos, horarios (hora de Panamá) y la "
     "predicción de cada encuentro.",
 )

@@ -103,7 +103,7 @@ try:
     historico = obtener_historico()
     temporadas = obtener_temporadas()
 except Exception as exc:
-    page_header("Predicciones", "Predicción de partido")
+    page_header("Predicción de partido")
     error_state(
         "No se pudieron cargar los datos",
         "Revisa que exista data/processed/lpf_historico_modelado.csv.",
@@ -113,7 +113,6 @@ except Exception as exc:
 
 
 page_header(
-    "Match Center",
     "Predicción de partido",
     "Centro de análisis para encuentros de la Liga Panameña de Fútbol.",
 )
@@ -167,7 +166,7 @@ _, centro, _ = st.columns([2, 3, 2])
 
 with centro:
     analizar = st.button(
-        "ANALIZAR PARTIDO",
+        "Analizar partido",
         type="primary",
         icon=":material/analytics:",
         key="analyze-button",

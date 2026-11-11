@@ -56,7 +56,6 @@ if cv:
 
 page_header(
     "Modelos y validación",
-    "Qué tan confiable es la predicción",
     "Resultados obtenidos en los notebooks de la tesis y exportados a "
     "data/processed/metricas_validacion.json. La aplicación los muestra tal "
     "como se registraron; no recalcula nada.",
@@ -92,7 +91,7 @@ if cv:
             "Mejor en validación",
             _pct(mejor_cv["accuracy"]),
             f"{mejor_cv['modelo']} · ± {mejor_cv['accuracy_sd'] * 100:.1f} pp",
-            "accent",
+            "brand",
         ),
     ]
 
@@ -108,7 +107,7 @@ if final:
                 "XGBoost, prueba final",
                 _pct(xgb_final["accuracy"]),
                 f"Baseline {_pct(base_final['accuracy'])} · {n_prueba} partidos",
-                "gold",
+                "",
             )
         )
 

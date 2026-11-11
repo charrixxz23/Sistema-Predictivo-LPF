@@ -22,6 +22,13 @@ from services.team_assets import obtener_abreviatura, obtener_logo_path
 # CONSTANTES DE PRESENTACIÓN
 # ============================================================
 
+NOMBRE_APP = "Pronóstico LPF"
+
+AVISO_PIE = (
+    "Proyecto académico, Universidad Tecnológica de Panamá. "
+    "No está afiliado a la Liga Panameña de Fútbol."
+)
+
 RESULTADO_LABELS = {
     "L": "Victoria local",
     "E": "Empate",
@@ -32,6 +39,14 @@ RESULTADO_ROLES = {
     "L": "LOCAL",
     "E": "EMPATE",
     "V": "VISITANTE",
+}
+
+# Nombres cortos SOLO para la presentación (tarjetas, tablas compactas).
+# El nombre completo sigue siendo el que usan los datos y los modelos.
+NOMBRES_CORTOS = {
+    "CA Independiente de La Chorrera": "CAI La Chorrera",
+    "Sporting San Miguelito": "Sporting SM",
+    "San Francisco FC": "San Francisco",
 }
 
 _DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
@@ -45,6 +60,10 @@ _MESES = [
 # ============================================================
 # FORMATO
 # ============================================================
+
+def nombre_corto(equipo):
+    return NOMBRES_CORTOS.get(equipo, equipo)
+
 
 def porcentaje(valor, decimales=1):
     return f"{valor * 100:.{decimales}f} %"
@@ -99,7 +118,7 @@ def _miniatura_base64(ruta, lado=96):
     with Image.open(ruta) as imagen:
         imagen = imagen.convert("RGBA")
         imagen.thumbnail((lado, lado))
-        # Paleta reducida: ~4x menos bytes por escudo, indistinguible a 44-88 px.
+        # Paleta reducida: ~4x menos bytes por escudo, indistinguible a 28-96 px.
         imagen = imagen.quantize(colors=192, method=Image.Quantize.FASTOCTREE)
         buffer = BytesIO()
         imagen.save(buffer, format="PNG", optimize=True)
@@ -130,22 +149,47 @@ def team_crest_html(equipo, tamano="md"):
 
 
 # ============================================================
-# ENCABEZADO, SECCIONES, CHIPS
+# MARCA, ENCABEZADO, SECCIONES, CHIPS, PIE
 # ============================================================
 
 def chip_html(texto, tono=""):
+    """tono: '' | 'brand' | 'hit' | 'miss' | 'pending'."""
+
     clase = f" lpf-chip--{tono}" if tono else ""
 
     return f"<span class='lpf-chip{clase}'>{texto_seguro(texto)}</span>"
 
 
-def page_header_html(kicker, titulo, subtitulo="", chips=()):
+def brand_bar(db_disponible=True):
+    """Franja de marca bajo la navegación superior."""
+
+    aviso = (
+        ""
+        if db_disponible
+        else "<div class='lpf-brand__status'>"
+        + chip_html("Historial no disponible", "miss")
+        + "</div>"
+    )
+
+    mostrar(
+        "<div class='lpf-brand'>"
+        f"<span class='lpf-brand__name'>Pronóstico <b>LPF</b></span>"
+        "<span class='lpf-brand__tag'>Predicción de partidos del fútbol panameño</span>"
+        f"{aviso}"
+        "</div>"
+    )
+
+
+def footer():
+    mostrar(f"<footer class='lpf-footer'>{texto_seguro(AVISO_PIE)}</footer>")
+
+
+def page_header_html(titulo, subtitulo="", chips=()):
     chips_html = "".join(chip_html(t, tono) for t, tono in chips)
 
     return (
         "<header class='lpf-header'>"
         "<div>"
-        f"<div class='lpf-header__kicker'>{texto_seguro(kicker)}</div>"
         f"<h1 class='lpf-header__title'>{texto_seguro(titulo)}</h1>"
         + (
             f"<p class='lpf-header__subtitle'>{texto_seguro(subtitulo)}</p>"
@@ -153,13 +197,13 @@ def page_header_html(kicker, titulo, subtitulo="", chips=()):
             else ""
         )
         + "</div>"
-        f"<div class='lpf-header__chips'>{chips_html}</div>"
-        "</header>"
+        + (f"<div class='lpf-header__chips'>{chips_html}</div>" if chips_html else "")
+        + "</header>"
     )
 
 
-def page_header(kicker, titulo, subtitulo="", chips=()):
-    mostrar(page_header_html(kicker, titulo, subtitulo, chips))
+def page_header(titulo, subtitulo="", chips=()):
+    mostrar(page_header_html(titulo, subtitulo, chips))
 
 
 def note_html(titulo, texto=""):
@@ -228,10 +272,10 @@ def metric_row(metricas):
 
 def _etiqueta_pronostico(codigo, local, visitante):
     if codigo == "L":
-        return f"Gana {local}"
+        return f"Gana {nombre_corto(local)}"
 
     if codigo == "V":
-        return f"Gana {visitante}"
+        return f"Gana {nombre_corto(visitante)}"
 
     return "Empate"
 
@@ -251,12 +295,12 @@ def _barra_probabilidades_html(probabilidades):
 
 
 def _cuotas_html(probabilidades, pronostico):
-    nombres = {"L": "1 · LOCAL", "E": "X · EMPATE", "V": "2 · VISITANTE"}
+    nombres = {"L": "1 · Local", "E": "X · Empate", "V": "2 · Visitante"}
 
     return (
         "<div class='lpf-odds'>"
         + "".join(
-            f"<div class='lpf-odd{' is-pick' if c == pronostico else ''}'>"
+            f"<div class='lpf-odd lpf-odd--{c}{' is-pick' if c == pronostico else ''}'>"
             f"<strong>{porcentaje(probabilidades.get(c, 0.0), 0)}</strong>"
             f"<span>{nombres[c]}</span></div>"
             for c in "LEV"
@@ -295,7 +339,7 @@ def analyze_href(local, visitante, fecha, temporada):
 
 
 def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
-    """Tarjeta de un partido.
+    """Tarjeta compacta de un partido.
 
     partido: dict con local, visitante, hora, fecha, estadio, estado,
              goles_local, goles_visitante.
@@ -322,9 +366,9 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
     else:
         centro = (
             f"<div class='lpf-match__time'>{texto_seguro(partido['hora'])}</div>"
-            "<div class='lpf-match__tag'>Hora Panamá</div>"
+            "<div class='lpf-match__tag'>Hora de Panamá</div>"
         )
-        chip_estado = chip_html("Pendiente", "gold")
+        chip_estado = chip_html("Pendiente", "pending")
 
     estadio = partido.get("estadio") or "Estadio por confirmar"
 
@@ -335,13 +379,13 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
         f"{chip_estado}"
         "</div>"
         "<div class='lpf-match__teams'>"
-        "<div class='lpf-team'>"
-        f"{team_crest_html(local, 'md')}"
-        f"<span class='lpf-team__name'>{texto_seguro(local)}</span></div>"
+        f"<div class='lpf-team' title='{texto_seguro(local)}'>"
+        f"{team_crest_html(local, 'sm')}"
+        f"<span class='lpf-team__name'>{texto_seguro(nombre_corto(local))}</span></div>"
         f"<div class='lpf-match__center'>{centro}</div>"
-        "<div class='lpf-team'>"
-        f"{team_crest_html(visitante, 'md')}"
-        f"<span class='lpf-team__name'>{texto_seguro(visitante)}</span></div>"
+        f"<div class='lpf-team lpf-team--away' title='{texto_seguro(visitante)}'>"
+        f"{team_crest_html(visitante, 'sm')}"
+        f"<span class='lpf-team__name'>{texto_seguro(nombre_corto(visitante))}</span></div>"
         "</div>"
     )
 
@@ -355,17 +399,14 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
             if partido["fecha"] <= fecha_corte:
                 acierto = chip_html("Dentro del período de entrenamiento")
             elif _resultado_real(gl, gv) == pick:
-                acierto = chip_html("Acertó 1X2", "accent")
+                acierto = chip_html("Acertó 1X2", "hit")
             else:
-                acierto = chip_html("No acertó 1X2", "danger")
+                acierto = chip_html("No acertó 1X2", "miss")
 
         enlace = analyze_href(local, visitante, partido["fecha"], temporada)
 
         html += (
             "<div class='lpf-pred'>"
-            "<div class='lpf-pred__title'>"
-            "<span>Predicción 1X2</span>"
-            f"<span>{texto_seguro(RESULTADO_ROLES[pick])}</span></div>"
             f"{_barra_probabilidades_html(probs)}"
             f"{_cuotas_html(probs, pick)}"
             "<div class='lpf-pred__foot'>"
@@ -375,7 +416,7 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
             f"{acierto}"
             "</div>"
             "<div class='lpf-pred__foot'>"
-            f"<span>{texto_seguro(_etiqueta_pronostico(pick, local, visitante))}</span>"
+            f"<span class='lpf-pred__pick'>{texto_seguro(_etiqueta_pronostico(pick, local, visitante))}</span>"
             f"<a class='lpf-link' target='_self' href='{escape(enlace)}'>"
             "Analizar a fondo →</a>"
             "</div>"
@@ -393,7 +434,7 @@ def match_grid(tarjetas):
 # TABLA DE CLASIFICACIÓN
 # ============================================================
 
-def standings_table_html(tabla):
+def standings_table_html(tabla, corto=False, compacta=False):
     encabezados = [
         ("#", ""), ("Equipo", "is-team"), ("PJ", ""), ("G", "hide-sm"),
         ("E", "hide-sm"), ("P", "hide-sm"), ("GF", "hide-sm"),
@@ -410,13 +451,15 @@ def standings_table_html(tabla):
         primero = " lpf-pos--first" if fila.pos == 1 else ""
         forma = "".join(f"<span class='{r}'>{r}</span>" for r in fila.forma)
         dg = f"+{fila.dg}" if fila.dg > 0 else str(fila.dg)
+        nombre = nombre_corto(fila.equipo) if corto else fila.equipo
 
         filas.append(
             "<tr>"
             f"<td><span class='lpf-pos{primero}'>{fila.pos}</span></td>"
-            "<td class='is-team'><div class='lpf-team-cell'>"
+            "<td class='is-team'>"
+            f"<div class='lpf-team-cell' title='{texto_seguro(fila.equipo)}'>"
             f"{team_crest_html(fila.equipo, 'sm')}"
-            f"<span>{texto_seguro(fila.equipo)}</span></div></td>"
+            f"<span>{texto_seguro(nombre)}</span></div></td>"
             f"<td>{fila.pj}</td>"
             f"<td class='hide-sm'>{fila.g}</td>"
             f"<td class='hide-sm'>{fila.e}</td>"
@@ -429,19 +472,21 @@ def standings_table_html(tabla):
             "</tr>"
         )
 
+    clase = " lpf-table--compact" if compacta else ""
+
     return (
-        "<div class='lpf-table-wrap'><table class='lpf-table'>"
+        f"<div class='lpf-table-wrap'><table class='lpf-table{clase}'>"
         f"<thead><tr>{cabecera}</tr></thead>"
         f"<tbody>{''.join(filas)}</tbody></table></div>"
     )
 
 
-def standings_table(tabla):
-    mostrar(standings_table_html(tabla))
+def standings_table(tabla, corto=False, compacta=False):
+    mostrar(standings_table_html(tabla, corto, compacta))
 
 
 # ============================================================
-# PREDICCIÓN DE PARTIDO (MATCH CENTER)
+# PREDICCIÓN DE PARTIDO
 # ============================================================
 
 def versus_html(local, visitante, temporada, fecha):
@@ -458,14 +503,15 @@ def versus_html(local, visitante, temporada, fecha):
 
     return (
         "<section class='lpf-versus'>"
-        f"{equipo(local, 'LOCAL')}"
-        "<div>"
-        "<div class='lpf-versus__vs'>VS</div>"
         "<div class='lpf-versus__meta'>"
         f"{chip_html('Temporada ' + str(temporada))}"
         f"{chip_html(fecha.strftime('%d/%m/%Y'))}"
-        "</div></div>"
+        "</div>"
+        "<div class='lpf-versus__teams'>"
+        f"{equipo(local, 'LOCAL')}"
+        "<div class='lpf-versus__vs'>VS</div>"
         f"{equipo(visitante, 'VISITANTE')}"
+        "</div>"
         "</section>"
     )
 
@@ -485,7 +531,7 @@ def prediction_panel_html(resultado, local, visitante):
         activo = " is-pick" if codigo == pick else ""
 
         tarjetas.append(
-            f"<article class='lpf-prob{activo}'>"
+            f"<article class='lpf-prob lpf-prob--{codigo}{activo}'>"
             f"<span class='lpf-prob__role'>{RESULTADO_ROLES[codigo]}</span>"
             f"<strong class='lpf-prob__name'>{texto_seguro(nombres[codigo])}</strong>"
             f"<div class='lpf-prob__value'>{porcentaje(probabilidad)}</div>"
@@ -537,7 +583,7 @@ def poisson_panel_html(resultado, local, visitante):
         f"<strong>{marcador['local']} - {marcador['visitante']}</strong>"
         f"<small>{porcentaje(marcador['probabilidad'], 2)}</small></article>"
         "</div>"
-        "<div class='lpf-section__hint' style='margin-top:16px'>"
+        "<div class='lpf-section__hint lpf-hint-gap'>"
         "Marcadores más probables</div>"
         f"<div class='lpf-scores'>{top}</div>"
         "</section>"
@@ -559,6 +605,8 @@ def history_cards_html(registros):
             " - "
             f"{registro.get('marcador_visitante', '-')}"
         )
+        local = registro.get("equipo_local", "")
+        visitante = registro.get("equipo_visitante", "")
 
         tarjetas.append(
             "<article class='lpf-hist'>"
@@ -566,11 +614,11 @@ def history_cards_html(registros):
             f"<span>{texto_seguro(formatear_fecha(registro.get('fecha_partido')))}</span>"
             f"<span>Temporada {texto_seguro(registro.get('temporada'))}</span></div>"
             "<div class='lpf-hist__match'>"
-            f"{team_crest_html(registro.get('equipo_local', ''), 'sm')}"
-            f"<span>{texto_seguro(registro.get('equipo_local'))}</span>"
+            f"<span class='lpf-hist__team' title='{texto_seguro(local)}'>"
+            f"{team_crest_html(local, 'sm')}{texto_seguro(nombre_corto(local))}</span>"
             "<em>vs</em>"
-            f"{team_crest_html(registro.get('equipo_visitante', ''), 'sm')}"
-            f"<span>{texto_seguro(registro.get('equipo_visitante'))}</span></div>"
+            f"<span class='lpf-hist__team' title='{texto_seguro(visitante)}'>"
+            f"{team_crest_html(visitante, 'sm')}{texto_seguro(nombre_corto(visitante))}</span></div>"
             "<div class='lpf-hist__grid'>"
             f"<div><span>Pronóstico</span><strong>{texto_seguro(etiqueta)}</strong></div>"
             f"<div><span>Marcador Poisson</span><strong>{texto_seguro(marcador)}</strong></div>"
@@ -622,7 +670,7 @@ def skeleton_html(cantidad=6):
 
 
 # ============================================================
-# TABLA GENÉRICA Y MARCA
+# TABLA GENÉRICA
 # ============================================================
 
 def data_table_html(encabezados, filas, destacar=None):
@@ -649,34 +697,4 @@ def data_table_html(encabezados, filas, destacar=None):
         "<div class='lpf-table-wrap'><table class='lpf-table'>"
         f"<thead><tr>{cabecera}</tr></thead>"
         f"<tbody>{''.join(cuerpo)}</tbody></table></div>"
-    )
-
-
-def brand_bar(ruta_logo=None, db_disponible=True):
-    """Franja de marca bajo la navegación superior."""
-
-    logo = ""
-
-    if ruta_logo is not None and ruta_logo.exists():
-        try:
-            logo = (
-                "<img class='lpf-brand__logo' alt='Liga Panameña de Fútbol' "
-                f"src='data:image/png;base64,{_miniatura_base64(str(ruta_logo), 128)}'>"
-            )
-        except OSError:
-            logo = ""
-
-    estado = (
-        chip_html("Sistema activo", "accent")
-        if db_disponible
-        else chip_html("Historial no disponible", "danger")
-    )
-
-    mostrar(
-        "<div class='lpf-brand'>"
-        f"{logo}"
-        "<div><div class='lpf-brand__kicker'>Liga Panameña de Fútbol</div>"
-        "<div class='lpf-brand__name'>LPF Predictive Center</div></div>"
-        f"<div class='lpf-brand__status'>{estado}</div>"
-        "</div>"
     )
