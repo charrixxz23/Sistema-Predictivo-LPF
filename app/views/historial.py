@@ -9,8 +9,8 @@ from ui.components import (
     error_state,
     formatear_fecha,
     formatear_fecha_hora,
+    data_line,
     history_cards_html,
-    metric_row,
     mostrar,
     page_header,
     section_title,
@@ -55,27 +55,16 @@ df = pd.DataFrame(registros)
 conteo = df["resultado_predicho"].value_counts()
 equipos = pd.concat([df["equipo_local"], df["equipo_visitante"]]).value_counts()
 
-metric_row(
+data_line(
     [
-        ("Análisis guardados", str(len(df)), "Total en la base local", "brand"),
+        (str(len(df)), "análisis guardados"),
         (
-            "Pronósticos locales",
             str(int(conteo.get("L", 0))),
-            f"{int(conteo.get('E', 0))} empates · {int(conteo.get('V', 0))} visitantes",
-            "",
+            f"pronósticos locales ({int(conteo.get('E', 0))} empates, "
+            f"{int(conteo.get('V', 0))} visitantes)",
         ),
-        (
-            "Equipo más consultado",
-            str(equipos.index[0]),
-            f"{int(equipos.iloc[0])} análisis",
-            "",
-        ),
-        (
-            "Último análisis",
-            formatear_fecha(str(df.iloc[0]["fecha_consulta"])[:10]),
-            formatear_fecha_hora(df.iloc[0]["fecha_consulta"]),
-            "",
-        ),
+        ("Más consultado", f"{equipos.index[0]} · {int(equipos.iloc[0])} análisis"),
+        ("Último", formatear_fecha_hora(df.iloc[0]["fecha_consulta"])),
     ]
 )
 
@@ -86,8 +75,8 @@ vista_col, limite_col = st.columns([3, 2], vertical_alignment="bottom")
 with vista_col:
     vista = st.segmented_control(
         "Vista",
-        ["Tarjetas", "Tabla"],
-        default="Tarjetas",
+        ["Lista", "Tabla"],
+        default="Lista",
         key="historial_vista",
     )
 

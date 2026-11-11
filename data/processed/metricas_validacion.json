@@ -53,7 +53,7 @@
       "fuente": "07_xgboost.ipynb"
     }
   },
-  "generado": "2026-11-11T11:14:47",
+  "generado": "2026-11-11T13:45:55",
   "poisson_prueba": {
     "mae_local": 0.9556947470931118,
     "mae_visitante": 0.818662396320244,
@@ -82,7 +82,7 @@
         "f1_macro": 0.4098822800861343,
         "f1_macro_sd": 0.02658217740428914,
         "log_loss": 1.0779152646047876,
-        "log_loss_sd": 0.014078085331999135,
+        "log_loss_sd": 0.014078085331999108,
         "folds_sobre_baseline": 6,
         "total_folds": 6
       },
@@ -107,6 +107,62 @@
         "log_loss_sd": 0.01296476084690169,
         "folds_sobre_baseline": 6,
         "total_folds": 6
+      }
+    ],
+    "folds": [
+      {
+        "anio": 2020,
+        "baseline_accuracy": 0.3695652173913043,
+        "modelos": {
+          "Random Forest": 0.44565217391304346,
+          "Regresión Logística": 0.40217391304347827,
+          "XGBoost": 0.3804347826086957
+        }
+      },
+      {
+        "anio": 2021,
+        "baseline_accuracy": 0.35436893203883496,
+        "modelos": {
+          "Random Forest": 0.3883495145631068,
+          "Regresión Logística": 0.34951456310679613,
+          "XGBoost": 0.3640776699029126
+        }
+      },
+      {
+        "anio": 2022,
+        "baseline_accuracy": 0.3640776699029126,
+        "modelos": {
+          "Random Forest": 0.3932038834951456,
+          "Regresión Logística": 0.41262135922330095,
+          "XGBoost": 0.3737864077669903
+        }
+      },
+      {
+        "anio": 2023,
+        "baseline_accuracy": 0.4223300970873786,
+        "modelos": {
+          "Random Forest": 0.45145631067961167,
+          "Regresión Logística": 0.4029126213592233,
+          "XGBoost": 0.44660194174757284
+        }
+      },
+      {
+        "anio": 2024,
+        "baseline_accuracy": 0.41262135922330095,
+        "modelos": {
+          "Random Forest": 0.42718446601941745,
+          "Regresión Logística": 0.45145631067961167,
+          "XGBoost": 0.4368932038834951
+        }
+      },
+      {
+        "anio": 2025,
+        "baseline_accuracy": 0.3640776699029126,
+        "modelos": {
+          "Random Forest": 0.4029126213592233,
+          "Regresión Logística": 0.39805825242718446,
+          "XGBoost": 0.4077669902912621
+        }
       }
     ],
     "fuente": "09_validacion_cruzada_temporal.ipynb"

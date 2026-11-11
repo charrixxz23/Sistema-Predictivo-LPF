@@ -5,12 +5,12 @@ import streamlit as st
 from services.liga_service import jornada_sugerida
 from services.reporte_service import fecha_corte_entrenamiento
 from ui.components import (
+    data_line,
     day_heading,
     empty_state,
     error_state,
     match_card_html,
     match_grid,
-    metric_row,
     page_header,
     section_title,
     skeleton_html,
@@ -59,8 +59,7 @@ pendientes = int((partidos["estado"] == "pendiente").sum())
 
 page_header(
     f"Jornada {jornada} de {total_jornadas}",
-    f"{len(partidos)} partidos · {pendientes} pendientes",
-    chips=[(f"Temporada {temporada_cal}", "brand")],
+    f"{len(partidos)} partidos · {pendientes} pendientes · Temporada {temporada_cal}",
 )
 
 partidos_col, tabla_col = st.columns([3, 2], gap="large")
@@ -139,20 +138,15 @@ with tabla_col:
         icon=":material/leaderboard:",
     )
 
+    section_title("Resumen de la base")
 
-# ------------------------------------------------------------
-# Resumen de la base
-# ------------------------------------------------------------
+    registros, _ = leer_historial(100000)
 
-section_title("Resumen de la base")
-
-registros, _ = leer_historial(100000)
-
-metric_row(
-    [
-        ("Partidos en la base", f"{len(historico):,}", "Histórico 2014-2026", "brand"),
-        ("Temporadas", str(len(temporadas)), "Con datos para modelado", ""),
-        ("Jornadas del calendario", str(total_jornadas), f"Temporada {temporada_cal}", ""),
-        ("Análisis guardados", str(len(registros)), "En el historial local", ""),
-    ]
-)
+    data_line(
+        [
+            (f"{len(historico):,}", "partidos en la base (2014-2026)"),
+            (str(len(temporadas)), "temporadas con datos para modelado"),
+            (str(total_jornadas), f"jornadas en el calendario {temporada_cal}"),
+            (str(len(registros)), "análisis guardados"),
+        ]
+    )

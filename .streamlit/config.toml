@@ -1,14 +1,14 @@
-# Tema de Pronóstico LPF · paleta «Claro y verde».
+# Tema de Pronóstico LPF · base neutra de papel; el color lo ponen los clubes.
 # Los tokens de color coinciden con app/ui/styles.py (única fuente del CSS adicional).
 
 [theme]
 base = "light"
 primaryColor = "#00875A"
-backgroundColor = "#F3F4F5"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#1F2328"
-borderColor = "#DADDE1"
-baseRadius = "0.5rem"
+backgroundColor = "#FBF8F2"
+secondaryBackgroundColor = "#F3EEE4"
+textColor = "#17181A"
+borderColor = "#C9C2B3"
+baseRadius = "0.375rem"
 font = "Barlow"
 headingFont = "Barlow Condensed"
 

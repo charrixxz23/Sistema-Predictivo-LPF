@@ -2,7 +2,8 @@
 
 Cada función ``*_html`` devuelve marcado HTML (con el texto ya escapado) y
 cada función sin sufijo lo dibuja con ``st.html``. Las clases CSS viven en
-ui/styles.py; aquí no hay estilos.
+ui/styles.py; aquí no hay estilos propios, solo los colores de los clubes
+(ui/team_colors.py) que se pasan como variables CSS.
 """
 
 import base64
@@ -10,12 +11,16 @@ from datetime import date, datetime
 from functools import lru_cache
 from html import escape
 from io import BytesIO
+from pathlib import Path
 from urllib.parse import urlencode
 
+import numpy as np
 import streamlit as st
 from PIL import Image
 
+from services.poisson_service import calcular_matriz_marcadores
 from services.team_assets import obtener_abreviatura, obtener_logo_path
+from ui import team_colors as tc
 
 
 # ============================================================
@@ -35,13 +40,7 @@ RESULTADO_LABELS = {
     "V": "Victoria visitante",
 }
 
-RESULTADO_ROLES = {
-    "L": "LOCAL",
-    "E": "EMPATE",
-    "V": "VISITANTE",
-}
-
-# Nombres cortos SOLO para la presentación (tarjetas, tablas compactas).
+# Nombres cortos SOLO para la presentación (filas, tablas compactas).
 # El nombre completo sigue siendo el que usan los datos y los modelos.
 NOMBRES_CORTOS = {
     "CA Independiente de La Chorrera": "CAI La Chorrera",
@@ -55,6 +54,11 @@ _MESES = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
     "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 ]
+
+# Mapa de calor de marcadores: de papel a verde oscuro
+_PAPEL = "#FBF8F2"
+_VERDE_MAPA = "#006B4A"
+_LADO_MAPA = 6  # 0 a 5 goles por equipo
 
 
 # ============================================================
@@ -118,7 +122,7 @@ def _miniatura_base64(ruta, lado=96):
     with Image.open(ruta) as imagen:
         imagen = imagen.convert("RGBA")
         imagen.thumbnail((lado, lado))
-        # Paleta reducida: ~4x menos bytes por escudo, indistinguible a 28-96 px.
+        # Paleta reducida: ~4x menos bytes por escudo, indistinguible a 28-112 px.
         imagen = imagen.quantize(colors=192, method=Image.Quantize.FASTOCTREE)
         buffer = BytesIO()
         imagen.save(buffer, format="PNG", optimize=True)
@@ -126,7 +130,7 @@ def _miniatura_base64(ruta, lado=96):
     return base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
-def team_crest_html(equipo, tamano="md"):
+def team_crest_html(equipo, tamano="sm"):
     """Escudo local del equipo o, si no existe, sus iniciales."""
 
     ruta = obtener_logo_path(equipo)
@@ -149,31 +153,21 @@ def team_crest_html(equipo, tamano="md"):
 
 
 # ============================================================
-# MARCA, ENCABEZADO, SECCIONES, CHIPS, PIE
+# MARCA, ENCABEZADO, SECCIONES, DATOS, PIE
 # ============================================================
 
-def chip_html(texto, tono=""):
-    """tono: '' | 'brand' | 'hit' | 'miss' | 'pending'."""
-
-    clase = f" lpf-chip--{tono}" if tono else ""
-
-    return f"<span class='lpf-chip{clase}'>{texto_seguro(texto)}</span>"
-
-
 def brand_bar(db_disponible=True):
-    """Franja de marca bajo la navegación superior."""
+    """Marca bajo la navegación superior."""
 
     aviso = (
         ""
         if db_disponible
-        else "<div class='lpf-brand__status'>"
-        + chip_html("Historial no disponible", "miss")
-        + "</div>"
+        else "<span class='lpf-brand__aviso'>Historial no disponible</span>"
     )
 
     mostrar(
         "<div class='lpf-brand'>"
-        f"<span class='lpf-brand__name'>Pronóstico <b>LPF</b></span>"
+        "<span class='lpf-brand__name'>Pronóstico <b>LPF</b></span>"
         "<span class='lpf-brand__tag'>Predicción de partidos del fútbol panameño</span>"
         f"{aviso}"
         "</div>"
@@ -184,39 +178,21 @@ def footer():
     mostrar(f"<footer class='lpf-footer'>{texto_seguro(AVISO_PIE)}</footer>")
 
 
-def page_header_html(titulo, subtitulo="", chips=()):
-    chips_html = "".join(chip_html(t, tono) for t, tono in chips)
-
+def page_header_html(titulo, subtitulo=""):
     return (
         "<header class='lpf-header'>"
-        "<div>"
         f"<h1 class='lpf-header__title'>{texto_seguro(titulo)}</h1>"
         + (
             f"<p class='lpf-header__subtitle'>{texto_seguro(subtitulo)}</p>"
             if subtitulo
             else ""
         )
-        + "</div>"
-        + (f"<div class='lpf-header__chips'>{chips_html}</div>" if chips_html else "")
         + "</header>"
     )
 
 
-def page_header(titulo, subtitulo="", chips=()):
-    mostrar(page_header_html(titulo, subtitulo, chips))
-
-
-def note_html(titulo, texto=""):
-    return (
-        "<aside class='lpf-note' role='note'>"
-        f"<strong>{texto_seguro(titulo)}</strong>"
-        + (f"<span>{texto_seguro(texto)}</span>" if texto else "")
-        + "</aside>"
-    )
-
-
-def note(titulo, texto=""):
-    mostrar(note_html(titulo, texto))
+def page_header(titulo, subtitulo=""):
+    mostrar(page_header_html(titulo, subtitulo))
 
 
 def section_title(titulo, pista=""):
@@ -229,45 +205,32 @@ def section_title(titulo, pista=""):
 
 
 def day_heading(valor):
-    mostrar(
-        "<div class='lpf-day'>"
-        f"<span class='lpf-day__date'>{texto_seguro(fecha_larga(valor))}</span>"
-        "</div>"
-    )
+    mostrar(f"<div class='lpf-dia'>{texto_seguro(fecha_larga(valor))}</div>")
 
 
-# ============================================================
-# TARJETA DE MÉTRICA
-# ============================================================
-
-def metric_card_html(etiqueta, valor, pista="", tono=""):
-    clase = f" lpf-metric--{tono}" if tono else ""
+def data_line_html(datos):
+    """Línea de datos. datos: iterable de (valor, texto); el valor va en negrita."""
 
     return (
-        f"<article class='lpf-metric{clase}'>"
-        f"<div class='lpf-metric__label'>{texto_seguro(etiqueta)}</div>"
-        f"<div class='lpf-metric__value'>{texto_seguro(valor)}</div>"
-        + (
-            f"<div class='lpf-metric__hint'>{texto_seguro(pista)}</div>"
-            if pista
-            else ""
+        "<div class='lpf-datos'>"
+        + "".join(
+            f"<span><b>{texto_seguro(valor)}</b> {texto_seguro(texto)}</span>"
+            for valor, texto in datos
         )
-        + "</article>"
-    )
-
-
-def metric_row(metricas):
-    """metricas: iterable de (etiqueta, valor, pista, tono)."""
-
-    mostrar(
-        "<div class='lpf-metrics'>"
-        + "".join(metric_card_html(*m) for m in metricas)
         + "</div>"
     )
 
 
+def data_line(datos):
+    mostrar(data_line_html(datos))
+
+
+def foot_note(texto):
+    mostrar(f"<p class='lpf-nota-pie'>{texto_seguro(texto)}</p>")
+
+
 # ============================================================
-# PREDICCIÓN: PIEZAS COMPARTIDAS
+# PARTIDOS: FILA DE DUELO
 # ============================================================
 
 def _etiqueta_pronostico(codigo, local, visitante):
@@ -280,35 +243,6 @@ def _etiqueta_pronostico(codigo, local, visitante):
     return "Empate"
 
 
-def _barra_probabilidades_html(probabilidades):
-    total = sum(probabilidades.get(c, 0.0) for c in "LEV") or 1.0
-
-    return (
-        "<div class='lpf-bar' role='img' aria-label='Probabilidades 1X2'>"
-        + "".join(
-            f"<span class='lpf-bar__seg lpf-bar__seg--{c}' "
-            f"style='width:{probabilidades.get(c, 0.0) / total * 100:.2f}%'></span>"
-            for c in "LEV"
-        )
-        + "</div>"
-    )
-
-
-def _cuotas_html(probabilidades, pronostico):
-    nombres = {"L": "1 · Local", "E": "X · Empate", "V": "2 · Visitante"}
-
-    return (
-        "<div class='lpf-odds'>"
-        + "".join(
-            f"<div class='lpf-odd lpf-odd--{c}{' is-pick' if c == pronostico else ''}'>"
-            f"<strong>{porcentaje(probabilidades.get(c, 0.0), 0)}</strong>"
-            f"<span>{nombres[c]}</span></div>"
-            for c in "LEV"
-        )
-        + "</div>"
-    )
-
-
 def _resultado_real(goles_local, goles_visitante):
     if goles_local > goles_visitante:
         return "L"
@@ -319,9 +253,24 @@ def _resultado_real(goles_local, goles_visitante):
     return "E"
 
 
-# ============================================================
-# TARJETA DE PARTIDO (CALENDARIO)
-# ============================================================
+def _barra_1x2_html(probabilidades, rayado_local, rayado_visitante, clase="lpf-1x2"):
+    """Barra 1X2: color del local (1), gris (X) y color del visitante (2)."""
+
+    total = sum(probabilidades.get(c, 0.0) for c in "LEV") or 1.0
+
+    def segmento(codigo, extra, rayado):
+        ancho = probabilidades.get(codigo, 0.0) / total * 100
+        marca = " rayado" if rayado else ""
+        return f"<i class='{extra}{marca}' style='width:{ancho:.2f}%'></i>"
+
+    return (
+        f"<div class='{clase}' role='img' aria-label='Probabilidades 1X2'>"
+        f"{segmento('L', 'u', rayado_local)}"
+        f"{segmento('E', 'x', False)}"
+        f"{segmento('V', 'd', rayado_visitante)}"
+        "</div>"
+    )
+
 
 def analyze_href(local, visitante, fecha, temporada):
     """Enlace a la página Predicciones con el partido preseleccionado."""
@@ -339,7 +288,7 @@ def analyze_href(local, visitante, fecha, temporada):
 
 
 def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
-    """Tarjeta compacta de un partido.
+    """Fila de duelo de un partido (una fila por partido, en una sola columna).
 
     partido: dict con local, visitante, hora, fecha, estadio, estado,
              goles_local, goles_visitante.
@@ -355,37 +304,32 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
     visitante = partido["visitante"]
     finalizado = partido["estado"] == "finalizado"
 
+    (c_local, ray_local), (c_visita, ray_visita) = tc.colores_barra(local, visitante)
+
     if finalizado:
         gl = int(partido["goles_local"])
         gv = int(partido["goles_visitante"])
-        centro = (
-            f"<div class='lpf-match__score'>{gl} - {gv}</div>"
-            "<div class='lpf-match__tag'>Final</div>"
-        )
-        chip_estado = chip_html("Finalizado")
+        centro = f"<div class='lpf-duelo__marcador'>{gl} - {gv}</div>"
+        estado = "Final"
     else:
-        centro = (
-            f"<div class='lpf-match__time'>{texto_seguro(partido['hora'])}</div>"
-            "<div class='lpf-match__tag'>Hora de Panamá</div>"
-        )
-        chip_estado = chip_html("Pendiente", "pending")
+        centro = "<div class='lpf-duelo__marcador vs'>vs</div>"
+        estado = "Pendiente"
 
     estadio = partido.get("estadio") or "Estadio por confirmar"
 
     html = (
-        "<article class='lpf-match'>"
-        "<div class='lpf-match__meta'>"
-        f"<span class='lpf-match__venue'>{texto_seguro(estadio)}</span>"
-        f"{chip_estado}"
-        "</div>"
-        "<div class='lpf-match__teams'>"
-        f"<div class='lpf-team' title='{texto_seguro(local)}'>"
-        f"{team_crest_html(local, 'sm')}"
-        f"<span class='lpf-team__name'>{texto_seguro(nombre_corto(local))}</span></div>"
-        f"<div class='lpf-match__center'>{centro}</div>"
-        f"<div class='lpf-team lpf-team--away' title='{texto_seguro(visitante)}'>"
-        f"{team_crest_html(visitante, 'sm')}"
-        f"<span class='lpf-team__name'>{texto_seguro(nombre_corto(visitante))}</span></div>"
+        f"<article class='lpf-duelo' style='--c1:{c_local};--c2:{c_visita}'>"
+        "<div class='lpf-duelo__banda'><i></i><i></i></div>"
+        "<div class='lpf-duelo__linea'>"
+        "<div class='lpf-duelo__cuando'>"
+        f"<b>{texto_seguro(partido['hora'])}</b><span>{estado}</span></div>"
+        f"<div class='lpf-duelo__local' title='{texto_seguro(local)}'>"
+        f"<span class='lpf-duelo__n'>{texto_seguro(nombre_corto(local))}</span>"
+        f"{team_crest_html(local)}</div>"
+        f"{centro}"
+        f"<div class='lpf-duelo__visita' title='{texto_seguro(visitante)}'>"
+        f"{team_crest_html(visitante)}"
+        f"<span class='lpf-duelo__n'>{texto_seguro(nombre_corto(visitante))}</span></div>"
         "</div>"
     )
 
@@ -394,40 +338,51 @@ def match_card_html(partido, prediccion=None, temporada="", fecha_corte=None):
         pick = prediccion["resultado"]
         marcador = prediccion["marcador"]
 
-        acierto = ""
+        marca = ""
         if finalizado and fecha_corte is not None:
             if partido["fecha"] <= fecha_corte:
-                acierto = chip_html("Dentro del período de entrenamiento")
+                marca = (
+                    " · <span class='lpf-marca-neutra'>"
+                    "Dentro del período de entrenamiento</span>"
+                )
             elif _resultado_real(gl, gv) == pick:
-                acierto = chip_html("Acertó 1X2", "hit")
+                marca = " · <span class='lpf-marca-ok'>✓ Acertó 1X2</span>"
             else:
-                acierto = chip_html("No acertó 1X2", "miss")
+                marca = " · <span class='lpf-marca-no'>✕ No acertó 1X2</span>"
+
+        def cifra(codigo, rotulo):
+            texto = f"{rotulo} {probs.get(codigo, 0.0) * 100:.0f} %"
+            return f"<span><b>{texto}</b></span>" if codigo == pick else f"<span>{texto}</span>"
 
         enlace = analyze_href(local, visitante, partido["fecha"], temporada)
 
         html += (
-            "<div class='lpf-pred'>"
-            f"{_barra_probabilidades_html(probs)}"
-            f"{_cuotas_html(probs, pick)}"
-            "<div class='lpf-pred__foot'>"
-            "<span>Marcador probable "
+            "<div class='lpf-duelo__pred'>"
+            "<div>"
+            f"{_barra_1x2_html(probs, ray_local, ray_visita)}"
+            f"<div class='lpf-1x2__n'>{cifra('L', '1')}{cifra('E', 'X')}{cifra('V', '2')}</div>"
+            "</div>"
+            "<div class='lpf-duelo__lado'>Marcador probable "
             f"<strong>{marcador['local']} - {marcador['visitante']}</strong> "
-            f"({porcentaje(prediccion['prob_marcador'], 1)})</span>"
-            f"{acierto}"
+            f"({porcentaje(prediccion['prob_marcador'])})<br>"
+            f"{texto_seguro(_etiqueta_pronostico(pick, local, visitante))}{marca}</div>"
             "</div>"
-            "<div class='lpf-pred__foot'>"
-            f"<span class='lpf-pred__pick'>{texto_seguro(_etiqueta_pronostico(pick, local, visitante))}</span>"
-            f"<a class='lpf-link' target='_self' href='{escape(enlace)}'>"
-            "Analizar a fondo →</a>"
-            "</div>"
-            "</div>"
+            "<div class='lpf-duelo__pie'>"
+            f"<span>{texto_seguro(estadio)}</span>"
+            f"<a class='lpf-enlace' target='_self' href='{escape(enlace)}'>"
+            "Analizar a fondo →</a></div>"
+        )
+    else:
+        html += (
+            "<div class='lpf-duelo__pie'>"
+            f"<span>{texto_seguro(estadio)}</span></div>"
         )
 
     return html + "</article>"
 
 
-def match_grid(tarjetas):
-    mostrar(f"<div class='lpf-matches'>{''.join(tarjetas)}</div>")
+def match_grid(filas):
+    mostrar(f"<div class='lpf-duelos'>{''.join(filas)}</div>")
 
 
 # ============================================================
@@ -435,47 +390,51 @@ def match_grid(tarjetas):
 # ============================================================
 
 def standings_table_html(tabla, corto=False, compacta=False):
+    """Tabla de posiciones con una franja del color de cada club."""
+
+    detalle = " hide-sm oculta" if compacta else " hide-sm"
+
     encabezados = [
-        ("#", ""), ("Equipo", "is-team"), ("PJ", ""), ("G", "hide-sm"),
-        ("E", "hide-sm"), ("P", "hide-sm"), ("GF", "hide-sm"),
-        ("GC", "hide-sm"), ("DG", ""), ("Pts", ""), ("Forma", "hide-sm"),
+        ("", ""), ("Equipo", "e"), ("PJ", ""), ("G", detalle), ("E", detalle),
+        ("P", detalle), ("GF", detalle), ("GC", detalle), ("DG", ""),
+        ("Pts", ""), ("Forma", detalle),
     ]
 
     cabecera = "".join(
-        f"<th class='{clase}'>{texto}</th>" for texto, clase in encabezados
+        f"<th class='{clase.strip()}'>{texto}</th>" for texto, clase in encabezados
     )
 
     filas = []
 
     for fila in tabla.itertuples(index=False):
-        primero = " lpf-pos--first" if fila.pos == 1 else ""
-        forma = "".join(f"<span class='{r}'>{r}</span>" for r in fila.forma)
         dg = f"+{fila.dg}" if fila.dg > 0 else str(fila.dg)
         nombre = nombre_corto(fila.equipo) if corto else fila.equipo
+        forma = "".join(
+            f"<i class='{r}' title='{r}'></i>" for r in fila.forma
+        )
+        club = tc.colores_club(fila.equipo)["primario"]
 
         filas.append(
-            "<tr>"
-            f"<td><span class='lpf-pos{primero}'>{fila.pos}</span></td>"
-            "<td class='is-team'>"
-            f"<div class='lpf-team-cell' title='{texto_seguro(fila.equipo)}'>"
-            f"{team_crest_html(fila.equipo, 'sm')}"
+            f"<tr style='--club:{club}'>"
+            f"<td class='club'>{fila.pos}</td>"
+            "<td class='e'>"
+            f"<div class='eq' title='{texto_seguro(fila.equipo)}'>"
+            f"{team_crest_html(fila.equipo)}"
             f"<span>{texto_seguro(nombre)}</span></div></td>"
             f"<td>{fila.pj}</td>"
-            f"<td class='hide-sm'>{fila.g}</td>"
-            f"<td class='hide-sm'>{fila.e}</td>"
-            f"<td class='hide-sm'>{fila.p}</td>"
-            f"<td class='hide-sm'>{fila.gf}</td>"
-            f"<td class='hide-sm'>{fila.gc}</td>"
+            f"<td class='{detalle.strip()}'>{fila.g}</td>"
+            f"<td class='{detalle.strip()}'>{fila.e}</td>"
+            f"<td class='{detalle.strip()}'>{fila.p}</td>"
+            f"<td class='{detalle.strip()}'>{fila.gf}</td>"
+            f"<td class='{detalle.strip()}'>{fila.gc}</td>"
             f"<td>{dg}</td>"
-            f"<td class='is-pts'>{fila.pts}</td>"
-            f"<td class='hide-sm'><span class='lpf-form'>{forma}</span></td>"
+            f"<td class='pts'>{fila.pts}</td>"
+            f"<td class='{detalle.strip()}'><span class='forma'>{forma}</span></td>"
             "</tr>"
         )
 
-    clase = " lpf-table--compact" if compacta else ""
-
     return (
-        f"<div class='lpf-table-wrap'><table class='lpf-table{clase}'>"
+        "<div class='lpf-tabla-wrap'><table class='lpf-tabla'>"
         f"<thead><tr>{cabecera}</tr></thead>"
         f"<tbody>{''.join(filas)}</tbody></table></div>"
     )
@@ -490,102 +449,182 @@ def standings_table(tabla, corto=False, compacta=False):
 # ============================================================
 
 def versus_html(local, visitante, temporada, fecha):
-    def equipo(nombre, rol):
-        return (
-            "<div class='lpf-versus__team'>"
-            f"<span class='lpf-versus__role'>{rol}</span>"
-            f"{team_crest_html(nombre, 'lg')}"
-            f"<span class='lpf-versus__name'>{texto_seguro(nombre)}</span>"
-            f"<span class='lpf-versus__code'>"
-            f"{texto_seguro(obtener_abreviatura(nombre))}</span>"
-            "</div>"
+    """Cabecera dividida en diagonal con los colores de los dos clubes.
+
+    Si ninguna tinta cumple contraste AA sobre el color de un club, su nombre
+    va fuera del color (debajo de la cabecera).
+    """
+
+    c_local, c_visita, _ = tc.colores_partido(local, visitante)
+
+    lados, fuera = [], []
+
+    for equipo, color, rol in ((local, c_local, "LOCAL"), (visitante, c_visita, "VISITANTE")):
+        tinta, cumple = tc.tinta_sobre(color)
+
+        dentro = (
+            f"<span class='lpf-vs__rol'>{rol}</span>" if cumple else ""
+        )
+        nombre = (
+            f"<span class='lpf-vs__nombre'>{texto_seguro(equipo)}</span>"
+            f"<span class='lpf-vs__abrev'>{texto_seguro(obtener_abreviatura(equipo))}</span>"
+            if cumple
+            else ""
+        )
+
+        lados.append(
+            f"<div class='lpf-vs__lado' style='--tinta:{tinta}'>"
+            f"{dentro}{team_crest_html(equipo, 'lg')}{nombre}</div>"
+        )
+        fuera.append(
+            ""
+            if cumple
+            else f"<span><small>{rol}</small>{texto_seguro(equipo)}</span>"
         )
 
     return (
         "<section class='lpf-versus'>"
-        "<div class='lpf-versus__meta'>"
-        f"{chip_html('Temporada ' + str(temporada))}"
-        f"{chip_html(fecha.strftime('%d/%m/%Y'))}"
-        "</div>"
-        "<div class='lpf-versus__teams'>"
-        f"{equipo(local, 'LOCAL')}"
-        "<div class='lpf-versus__vs'>VS</div>"
-        f"{equipo(visitante, 'VISITANTE')}"
-        "</div>"
+        f"<div class='lpf-vs' style='--c1:{c_local};--c2:{c_visita}'>"
+        f"{lados[0]}{lados[1]}<div class='lpf-vs__centro'>VS</div></div>"
+        f"<div class='lpf-vs__fuera'>{fuera[0]}{fuera[1]}</div>"
+        f"<p class='lpf-vs__meta'>Temporada {texto_seguro(temporada)} · "
+        f"{fecha.strftime('%d/%m/%Y')}</p>"
         "</section>"
     )
 
 
 def prediction_panel_html(resultado, local, visitante):
+    """Probabilidades 1X2 de XGBoost: barra con colores de los clubes y tres cifras."""
+
     xgb = resultado["xgboost"]
     probabilidades = xgb["probabilidades"]
     pick = xgb["resultado"]
 
+    (c_local, ray_local), (c_visita, ray_visita) = tc.colores_barra(local, visitante)
+
     nombres = {"L": local, "E": "Empate", "V": visitante}
+    rotulos = {"L": "Local", "E": "Empate", "V": "Visitante"}
 
-    tarjetas = []
+    columnas = "".join(
+        f"<div class='lpf-prob3__col{' pick' if codigo == pick else ''}'>"
+        f"<small>{rotulos[codigo]}</small>"
+        f"<b>{probabilidades.get(codigo, 0.0) * 100:.1f} %</b>"
+        f"<span>{texto_seguro(nombres[codigo])}</span></div>"
+        for codigo in "LEV"
+    )
 
-    for codigo in ("L", "E", "V"):
-        probabilidad = probabilidades.get(codigo, 0.0)
-        barra = max(0.0, min(probabilidad * 100, 100.0))
-        activo = " is-pick" if codigo == pick else ""
+    return (
+        f"<section class='lpf-prob3' style='--c1:{c_local};--c2:{c_visita}'>"
+        f"{_barra_1x2_html(probabilidades, ray_local, ray_visita, 'lpf-prob3__barra')}"
+        f"<div class='lpf-prob3__cols'>{columnas}</div>"
+        "<p class='lpf-prob3__pick'>Predicción principal: "
+        f"<strong>{texto_seguro(RESULTADO_LABELS.get(pick, pick)).upper()}</strong></p>"
+        "</section>"
+    )
 
-        tarjetas.append(
-            f"<article class='lpf-prob lpf-prob--{codigo}{activo}'>"
-            f"<span class='lpf-prob__role'>{RESULTADO_ROLES[codigo]}</span>"
-            f"<strong class='lpf-prob__name'>{texto_seguro(nombres[codigo])}</strong>"
-            f"<div class='lpf-prob__value'>{porcentaje(probabilidad)}</div>"
-            "<div class='lpf-prob__track'>"
-            f"<span class='lpf-prob__fill' style='width:{barra:.2f}%'></span></div>"
-            f"<small>{RESULTADO_LABELS[codigo]}</small>"
-            "</article>"
+
+def _color_celda(probabilidad, maximo):
+    return tc.mezclar(_PAPEL, _VERDE_MAPA, min(1.0, (probabilidad / maximo) ** 0.75))
+
+
+def score_matrix_html(resultado, local, visitante):
+    """Mapa de calor de marcadores (0 a 5 goles por equipo).
+
+    Usa calcular_matriz_marcadores (la misma matriz que ya calcula la
+    aplicación) con las lambdas del modelo. El marcador más probable que
+    muestra la app queda resaltado si cae dentro de la matriz.
+    """
+
+    goles = resultado["goles"]
+    matriz = calcular_matriz_marcadores(
+        goles["lambda_local"], goles["lambda_visitante"]
+    )
+    caja = matriz[:_LADO_MAPA, :_LADO_MAPA]
+    maximo = float(caja.max())
+
+    marcador = resultado["marcador_probable"]
+    resaltado = (
+        (marcador["local"], marcador["visitante"])
+        if marcador["local"] < _LADO_MAPA and marcador["visitante"] < _LADO_MAPA
+        else None
+    )
+
+    c_local, c_visita, _ = tc.colores_partido(local, visitante)
+
+    cabecera = "<th></th>" + "".join(f"<th>{g}</th>" for g in range(_LADO_MAPA))
+
+    filas = []
+
+    for a in range(_LADO_MAPA):
+        celdas = []
+
+        for b in range(_LADO_MAPA):
+            color = _color_celda(float(caja[a, b]), maximo)
+            tinta, _ = tc.tinta_sobre(color)
+            clase = " class='max'" if (a, b) == resaltado else ""
+
+            celdas.append(
+                f"<td{clase} style='background:{color};color:{tinta}' "
+                f"title='{texto_seguro(local)} {a} - {b} {texto_seguro(visitante)}: "
+                f"{caja[a, b] * 100:.2f} %'>{caja[a, b] * 100:.1f}</td>"
+            )
+
+        filas.append(f"<tr><th>{a}</th>{''.join(celdas)}</tr>")
+
+    if resaltado is not None:
+        i, j = resaltado
+        pie = (
+            f"Más oscuro = más probable (% de cada marcador). Resaltado: {i} - {j} "
+            f"({caja[i, j] * 100:.2f} %), el marcador más probable."
+        )
+    else:
+        pie = (
+            f"El marcador más probable ({marcador['local']} - {marcador['visitante']}) "
+            "queda fuera de esta matriz de 0 a 5 goles."
         )
 
     return (
-        "<section class='lpf-panel'>"
-        "<div class='lpf-panel__head'>"
-        "<div class='lpf-panel__kicker'>Pronóstico principal · XGBoost</div>"
-        "<h2 class='lpf-panel__title'>Pronóstico del partido</h2></div>"
-        f"<div class='lpf-probs'>{''.join(tarjetas)}</div>"
-        "<div class='lpf-pick'><span>Predicción principal</span>"
-        f"<strong>{texto_seguro(RESULTADO_LABELS.get(pick, pick)).upper()}</strong>"
-        "</div></section>"
+        "<div class='lpf-mapa-caja'>"
+        f"<div class='lpf-mapa__eje'><span style='border-bottom-color:{c_visita}'>"
+        f"Goles de {texto_seguro(visitante)}</span></div>"
+        "<div class='lpf-mapa__fila'>"
+        f"<div class='lpf-mapa__v' style='border-right-color:{c_local}'>"
+        f"Goles de {texto_seguro(local)}</div>"
+        f"<table class='lpf-mapa'><thead><tr>{cabecera}</tr></thead>"
+        f"<tbody>{''.join(filas)}</tbody></table></div>"
+        f"<p class='lpf-mapa-pie'>{texto_seguro(pie)} "
+        f"La matriz cubre {caja.sum() * 100:.1f} % de la probabilidad.</p>"
+        "</div>"
     )
 
 
 def poisson_panel_html(resultado, local, visitante):
+    """Goles esperados, marcadores más probables y matriz de Poisson."""
+
     goles = resultado["goles"]
-    marcador = resultado["marcador_probable"]
+    c_local, c_visita, _ = tc.colores_partido(local, visitante)
 
     top = "".join(
-        "<span class='lpf-score'>"
-        f"<strong>{m['local']} - {m['visitante']}</strong>"
-        f"<span>{porcentaje(m['probabilidad'], 2)}</span></span>"
+        "<li>"
+        f"<span>{m['local']} - {m['visitante']}</span>"
+        f"<b>{porcentaje(m['probabilidad'], 2)}</b></li>"
         for m in resultado["top_marcadores"]
     )
 
     return (
-        "<section class='lpf-panel'>"
-        "<div class='lpf-panel__head'>"
-        "<div class='lpf-panel__kicker'>Análisis de goles · Poisson</div>"
-        "<h2 class='lpf-panel__title'>Goles esperados y marcadores</h2></div>"
-        "<div class='lpf-xg'>"
-        "<article class='lpf-xg__card'>"
-        f"<span>{texto_seguro(local)}</span>"
-        f"<strong>{numero(goles['lambda_local'])}</strong>"
-        "<small>Goles esperados</small></article>"
-        "<article class='lpf-xg__card'>"
-        f"<span>{texto_seguro(visitante)}</span>"
-        f"<strong>{numero(goles['lambda_visitante'])}</strong>"
-        "<small>Goles esperados</small></article>"
-        "<article class='lpf-xg__card lpf-xg__card--main'>"
-        "<span>Marcador más probable</span>"
-        f"<strong>{marcador['local']} - {marcador['visitante']}</strong>"
-        f"<small>{porcentaje(marcador['probabilidad'], 2)}</small></article>"
+        "<section class='lpf-poisson'>"
+        f"<div>{score_matrix_html(resultado, local, visitante)}</div>"
+        "<div>"
+        "<div class='lpf-xg3'>"
+        f"<div style='--c:{c_local}'><small>{texto_seguro(local)}</small>"
+        f"<b>{numero(goles['lambda_local'])}</b></div>"
+        f"<div style='--c:{c_visita}'><small>{texto_seguro(visitante)}</small>"
+        f"<b>{numero(goles['lambda_visitante'])}</b></div>"
         "</div>"
-        "<div class='lpf-section__hint lpf-hint-gap'>"
-        "Marcadores más probables</div>"
-        f"<div class='lpf-scores'>{top}</div>"
+        "<p class='lpf-nota-pie'>Goles esperados por equipo</p>"
+        "<h3 class='lpf-subseccion'>Marcadores más probables</h3>"
+        f"<ul class='lpf-top'>{top}</ul>"
+        "</div>"
         "</section>"
     )
 
@@ -595,7 +634,9 @@ def poisson_panel_html(resultado, local, visitante):
 # ============================================================
 
 def history_cards_html(registros):
-    tarjetas = []
+    """Lista de análisis guardados: una fila por registro."""
+
+    filas = []
 
     for registro in registros:
         pick = registro.get("resultado_predicho", "")
@@ -607,29 +648,32 @@ def history_cards_html(registros):
         )
         local = registro.get("equipo_local", "")
         visitante = registro.get("equipo_visitante", "")
+        c_local, c_visita, _ = tc.colores_partido(local, visitante)
 
-        tarjetas.append(
-            "<article class='lpf-hist'>"
-            "<div class='lpf-hist__meta'>"
-            f"<span>{texto_seguro(formatear_fecha(registro.get('fecha_partido')))}</span>"
+        filas.append(
+            f"<article class='lpf-hist' style='--c1:{c_local};--c2:{c_visita}'>"
+            "<div class='lpf-duelo__banda'><i></i><i></i></div>"
+            "<div class='lpf-hist__linea'>"
+            "<div class='lpf-hist__cuando'>"
+            f"<b>{texto_seguro(formatear_fecha(registro.get('fecha_partido')))}</b>"
             f"<span>Temporada {texto_seguro(registro.get('temporada'))}</span></div>"
-            "<div class='lpf-hist__match'>"
-            f"<span class='lpf-hist__team' title='{texto_seguro(local)}'>"
-            f"{team_crest_html(local, 'sm')}{texto_seguro(nombre_corto(local))}</span>"
+            "<div class='lpf-hist__partido'>"
+            f"<span class='lpf-hist__eq' title='{texto_seguro(local)}'>"
+            f"{team_crest_html(local)}{texto_seguro(nombre_corto(local))}</span>"
             "<em>vs</em>"
-            f"<span class='lpf-hist__team' title='{texto_seguro(visitante)}'>"
-            f"{team_crest_html(visitante, 'sm')}{texto_seguro(nombre_corto(visitante))}</span></div>"
-            "<div class='lpf-hist__grid'>"
-            f"<div><span>Pronóstico</span><strong>{texto_seguro(etiqueta)}</strong></div>"
-            f"<div><span>Marcador Poisson</span><strong>{texto_seguro(marcador)}</strong></div>"
-            "</div>"
-            "<div class='lpf-hist__foot'>"
-            f"<span>Analizado {texto_seguro(formatear_fecha_hora(registro.get('fecha_consulta')))}</span>"
-            f"<span>{porcentaje(float(registro.get('prob_marcador') or 0.0), 2)}</span>"
+            f"<span class='lpf-hist__eq' title='{texto_seguro(visitante)}'>"
+            f"{team_crest_html(visitante)}{texto_seguro(nombre_corto(visitante))}</span></div>"
+            "<div class='lpf-hist__dato'><small>Pronóstico</small>"
+            f"<b>{texto_seguro(etiqueta)}</b></div>"
+            "<div class='lpf-hist__dato'><small>Marcador Poisson</small>"
+            f"<b>{texto_seguro(marcador)}</b></div>"
+            "<div class='lpf-hist__dato lpf-hist__dato--fin'>"
+            f"<small>Analizado {texto_seguro(formatear_fecha_hora(registro.get('fecha_consulta')))}</small>"
+            f"<b>{porcentaje(float(registro.get('prob_marcador') or 0.0), 2)}</b></div>"
             "</div></article>"
         )
 
-    return f"<div class='lpf-history'>{''.join(tarjetas)}</div>"
+    return f"<div class='lpf-duelos'>{''.join(filas)}</div>"
 
 
 # ============================================================
@@ -664,21 +708,21 @@ def error_state(titulo, mensaje, detalle=""):
 def skeleton_html(cantidad=6):
     return (
         "<div class='lpf-skeleton' aria-busy='true' aria-label='Cargando'>"
-        + "<div class='lpf-skeleton__card'></div>" * cantidad
+        + "<div class='lpf-skeleton__fila'></div>" * cantidad
         + "</div>"
     )
 
 
 # ============================================================
-# TABLA GENÉRICA
+# TABLAS GENÉRICAS, FICHA TÉCNICA Y GRÁFICO POR FOLD (Modelos)
 # ============================================================
 
 def data_table_html(encabezados, filas, destacar=None):
     """Tabla simple. filas: listas de textos ya formateados; destacar: índice
-    de fila resaltada."""
+    de la fila resaltada."""
 
     cabecera = "".join(
-        f"<th class='{'is-team' if i == 0 else ''}'>{texto_seguro(t)}</th>"
+        f"<th class='{'e' if i == 0 else ''}'>{texto_seguro(t)}</th>"
         for i, t in enumerate(encabezados)
     )
 
@@ -686,15 +730,175 @@ def data_table_html(encabezados, filas, destacar=None):
 
     for n, fila in enumerate(filas):
         celdas = "".join(
-            f"<td class='{'is-team' if i == 0 else ''}'>"
-            f"{texto_seguro(valor)}</td>"
+            f"<td class='{'e' if i == 0 else ''}'>{texto_seguro(valor)}</td>"
             for i, valor in enumerate(fila)
         )
-        estilo = " class='is-highlight'" if n == destacar else ""
+        estilo = " class='is-destacada'" if n == destacar else ""
         cuerpo.append(f"<tr{estilo}>{celdas}</tr>")
 
     return (
-        "<div class='lpf-table-wrap'><table class='lpf-table'>"
+        "<div class='lpf-tabla-wrap'><table class='lpf-tabla lpf-tabla--datos'>"
         f"<thead><tr>{cabecera}</tr></thead>"
         f"<tbody>{''.join(cuerpo)}</tbody></table></div>"
+    )
+
+
+def spec_sheet_html(filas):
+    """Ficha técnica compacta. filas: iterable de (etiqueta, texto)."""
+
+    return (
+        "<dl class='lpf-ficha'>"
+        + "".join(
+            f"<div><dt>{texto_seguro(etiqueta)}</dt><dd>{texto_seguro(texto)}</dd></div>"
+            for etiqueta, texto in filas
+        )
+        + "</dl>"
+    )
+
+
+_FUENTES_DIR = Path(__file__).resolve().parents[1] / "static" / "fonts"
+
+
+@lru_cache(maxsize=1)
+def _fuentes_svg():
+    """@font-face (data-URI) de Barlow para el SVG del gráfico: dentro de una
+    imagen SVG no se heredan las fuentes de la página."""
+
+    caras = []
+
+    for archivo, peso in (("Barlow-500.woff2", 500), ("Barlow-700.woff2", 700)):
+        ruta = _FUENTES_DIR / archivo
+
+        if ruta.exists():
+            datos = base64.b64encode(ruta.read_bytes()).decode("ascii")
+            caras.append(
+                "@font-face{font-family:'Barlow';font-weight:%d;"
+                "src:url(data:font/woff2;base64,%s) format('woff2');}" % (peso, datos)
+            )
+
+    return "".join(caras)
+
+
+def fold_chart_html(folds, modelo_app="XGBoost"):
+    """Gráfico de líneas: accuracy por fold de cada modelo frente al baseline.
+
+    folds: lista de dicts {anio, baseline_accuracy, modelos: {nombre: accuracy}}
+    (de data/processed/metricas_validacion.json). SVG en línea, sin librerías.
+    """
+
+    if not folds:
+        return ""
+
+    nombres = list(folds[0]["modelos"])
+    anios = [f["anio"] for f in folds]
+
+    valores = [f["baseline_accuracy"] for f in folds] + [
+        v for f in folds for v in f["modelos"].values()
+    ]
+    minimo = np.floor((min(valores) - 0.015) * 40) / 40
+    maximo = np.ceil((max(valores) + 0.015) * 40) / 40
+
+    ancho, alto = 640, 340
+    izq, der, sup, inf = 58, 168, 40, 44
+    area_w, area_h = ancho - izq - der, alto - sup - inf
+
+    def x(i):
+        return izq + (area_w * i / max(len(anios) - 1, 1))
+
+    def y(v):
+        return sup + area_h * (1 - (v - minimo) / (maximo - minimo))
+
+    estilos = {
+        modelo_app: ("#00875A", 4, ""),
+        "Random Forest": ("#17181A", 2.4, ""),
+        "Regresión Logística": ("#8A8F96", 2.4, ""),
+    }
+
+    partes = [
+        f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {ancho} {alto}' "
+        f"width='{ancho}' height='{alto}'>"
+        "<style>"
+        f"{_fuentes_svg()}"
+        "text{font-family:'Barlow','Segoe UI',sans-serif}"
+        ".g{stroke:#E4DED2;stroke-width:1}"
+        ".base{fill:none;stroke:#57534B;stroke-width:2;stroke-dasharray:6 5}"
+        ".t{font-size:17px;fill:#6A665D}"
+        ".n{font-size:18px}"
+        "</style>"
+    ]
+
+    paso = 0.025
+    nivel = np.ceil(minimo / paso) * paso
+    while nivel <= maximo + 1e-9:
+        py = y(nivel)
+        partes.append(
+            f"<line x1='{izq}' x2='{ancho - der}' y1='{py:.1f}' y2='{py:.1f}' class='g'/>"
+            f"<text x='{izq - 8}' y='{py + 5:.1f}' text-anchor='end' class='t'>"
+            f"{nivel * 100:.1f}</text>"
+        )
+        nivel += paso
+
+    for i, anio in enumerate(anios):
+        partes.append(
+            f"<text x='{x(i):.1f}' y='{alto - 14}' text-anchor='middle' class='t'>{anio}</text>"
+        )
+
+    # Baseline (discontinuo)
+    puntos = " ".join(f"{x(i):.1f},{y(f['baseline_accuracy']):.1f}" for i, f in enumerate(folds))
+    partes.append(f"<polyline points='{puntos}' class='base'/>")
+
+    etiquetas = [("Baseline", folds[-1]["baseline_accuracy"], "#57534B")]
+
+    otros = [n for n in nombres if n != modelo_app]
+    for nombre in otros + [modelo_app]:
+        color, grosor, _ = estilos.get(nombre, ("#8A8F96", 2.4, ""))
+        puntos = " ".join(
+            f"{x(i):.1f},{y(f['modelos'][nombre]):.1f}" for i, f in enumerate(folds)
+        )
+        partes.append(
+            f"<polyline points='{puntos}' fill='none' stroke='{color}' "
+            f"stroke-width='{grosor}' stroke-linejoin='round' stroke-linecap='round'/>"
+        )
+
+        for i, f in enumerate(folds):
+            partes.append(
+                f"<circle cx='{x(i):.1f}' cy='{y(f['modelos'][nombre]):.1f}' "
+                f"r='{4.5 if nombre == modelo_app else 3.5}' fill='{color}'>"
+                f"<title>{texto_seguro(nombre)} {f['anio']}: {f['modelos'][nombre] * 100:.1f} %</title></circle>"
+            )
+
+        etiquetas.append((nombre, folds[-1]["modelos"][nombre], color))
+
+    # Etiquetas directas al final de cada línea (separadas para no solaparse)
+    etiquetas.sort(key=lambda e: y(e[1]))
+    previo = -1e9
+    for nombre, valor, color in etiquetas:
+        py = max(y(valor), previo + 19)
+        previo = py
+        peso = 700 if nombre == modelo_app else 500
+        sufijo = " (la app)" if nombre == modelo_app else ""
+        partes.append(
+            f"<text x='{ancho - der + 12}' y='{py + 5:.1f}' fill='{color}' "
+            f"font-weight='{peso}' class='n'>{texto_seguro(nombre)}{sufijo}</text>"
+        )
+
+    partes.append(
+        f"<text x='{izq - 44}' y='20' class='t'>Accuracy (%)</text></svg>"
+    )
+
+    svg = "".join(partes)
+    datos = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+
+    resumen = "; ".join(
+        f"{f['anio']}: " + ", ".join(
+            f"{n} {v * 100:.1f} %" for n, v in f["modelos"].items()
+        ) + f", baseline {f['baseline_accuracy'] * 100:.1f} %"
+        for f in folds
+    )
+
+    return (
+        "<div class='lpf-fold-caja'>"
+        "<img class='lpf-fold' "
+        f"alt='Accuracy por fold de la validación cruzada frente al baseline. {texto_seguro(resumen)}' "
+        f"src='data:image/svg+xml;base64,{datos}'></div>"
     )

@@ -135,7 +135,7 @@ st.session_state.setdefault(
 # CONFIGURACIÓN DEL PARTIDO
 # ============================================================
 
-with st.container(border=True, key="match-controls"):
+with st.container(key="match-controls"):
     meta_col, fecha_col = st.columns([1, 1], gap="large", vertical_alignment="bottom")
 
     with meta_col:
@@ -213,7 +213,10 @@ if analizar:
                     icon=":material/info:",
                 )
 
+        section_title("Pronóstico del partido", "XGBoost")
         mostrar(prediction_panel_html(resultado, equipo_local, equipo_visitante))
+
+        section_title("Goles esperados y marcadores", "Poisson")
         mostrar(poisson_panel_html(resultado, equipo_local, equipo_visitante))
 
 

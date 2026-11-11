@@ -6,13 +6,13 @@ from services.liga_service import jornada_sugerida
 from services.reporte_service import fecha_corte_entrenamiento
 from services.team_assets import EQUIPOS_ACTIVOS
 from ui.components import (
+    data_line,
     day_heading,
     empty_state,
     error_state,
-    fecha_larga,
+    foot_note,
     match_card_html,
     match_grid,
-    mostrar,
     page_header,
     skeleton_html,
 )
@@ -121,10 +121,12 @@ if partidos.empty:
 
 pendientes = int((partidos["estado"] == "pendiente").sum())
 
-mostrar(
-    "<div class='lpf-section__hint' style='margin-top:12px'>"
-    f"Jornada {jornada} · {len(partidos)} partidos · "
-    f"{pendientes} pendientes</div>"
+data_line(
+    [
+        (f"Jornada {jornada}", ""),
+        (str(len(partidos)), "partidos"),
+        (str(pendientes), "pendientes"),
+    ]
 )
 
 predicciones = {}
@@ -169,8 +171,8 @@ for fecha, grupo in partidos.groupby("fecha", sort=True):
         ]
     )
 
-if con_predicciones:
-    st.caption(
+if con_predicciones and corte_entrenamiento is not None:
+    foot_note(
         "Cada predicción usa solo partidos anteriores a la fecha del encuentro. "
         "El indicador «Acertó / No acertó» aparece únicamente en partidos "
         f"posteriores al {corte_entrenamiento.strftime('%d/%m/%Y')}, último día "

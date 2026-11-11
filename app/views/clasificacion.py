@@ -5,11 +5,10 @@ from datetime import date
 import streamlit as st
 
 from ui.components import (
+    data_line,
     empty_state,
     error_state,
-    metric_row,
-    mostrar,
-    note,
+    foot_note,
     page_header,
     section_title,
     standings_table,
@@ -65,23 +64,14 @@ promedio = goles / partidos if partidos else 0.0
 mejor_ataque = tabla.sort_values("gf", ascending=False).iloc[0]
 mejor_defensa = tabla.sort_values("gc", ascending=True).iloc[0]
 
-metric_row(
+# Métricas en una línea de datos sobre la tabla (sin tarjetas)
+data_line(
     [
-        ("Líder", lider["equipo"], f"{lider['pts']} puntos en {lider['pj']} partidos", "brand"),
-        ("Partidos jugados", str(partidos), f"{goles} goles anotados", ""),
-        ("Goles por partido", f"{promedio:.2f}", "Promedio de la temporada", ""),
-        (
-            "Mejor ataque",
-            mejor_ataque["equipo"],
-            f"{mejor_ataque['gf']} goles a favor",
-            "",
-        ),
-        (
-            "Mejor defensa",
-            mejor_defensa["equipo"],
-            f"{mejor_defensa['gc']} goles en contra",
-            "",
-        ),
+        ("Líder", f"{lider['equipo']} · {lider['pts']} pts"),
+        (str(partidos), f"partidos jugados ({goles} goles)"),
+        (f"{promedio:.2f}", "goles por partido"),
+        ("Mejor ataque", f"{mejor_ataque['equipo']} · {mejor_ataque['gf']} GF"),
+        ("Mejor defensa", f"{mejor_defensa['equipo']} · {mejor_defensa['gc']} GC"),
     ]
 )
 
@@ -92,10 +82,13 @@ section_title(
     f"Temporada {temporada}",
 )
 
+standings_table(tabla)
+
+# Nota al pie: criterios y alcance de los datos
 detalle = (
-    "Suma los partidos con resultado registrado en el sistema, sin playoffs. "
-    "Desempate: diferencia de goles, goles a favor y orden alfabético; no se "
-    "aplican otros criterios oficiales."
+    "Calculada con los datos del sistema. Suma los partidos con resultado "
+    "registrado, sin playoffs. Desempate: diferencia de goles, goles a favor y "
+    "orden alfabético; no se aplican otros criterios oficiales."
 )
 
 if acumulada:
@@ -121,12 +114,10 @@ try:
 except Exception:
     pass
 
-note("Calculada con los datos del sistema", detalle)
+foot_note(detalle)
 
-standings_table(tabla)
-
-mostrar(
-    "<div class='lpf-section__hint' style='margin-top:12px'>"
+foot_note(
     "PJ partidos jugados · G ganados · E empatados · P perdidos · "
-    "GF/GC goles a favor/en contra · DG diferencia · Forma: últimos 5</div>"
+    "GF/GC goles a favor/en contra · DG diferencia · Forma: últimos 5 "
+    "(azul gana, gris empata, rojo pierde)."
 )
