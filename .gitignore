@@ -55,3 +55,6 @@ Desktop.ini
 *_backup_*.css
 backup/
 backups/
+
+# Respaldo de rediseño de interfaz
+backup_ui/

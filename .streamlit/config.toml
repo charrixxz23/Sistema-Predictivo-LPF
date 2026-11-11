@@ -1,0 +1,18 @@
+# Tema de LPF Predictive Center.
+# Los tokens de color coinciden con ui/styles.py (única fuente del CSS adicional).
+
+[theme]
+base = "dark"
+primaryColor = "#2DD4A7"
+backgroundColor = "#0A1224"
+secondaryBackgroundColor = "#111C33"
+textColor = "#E8EEF8"
+borderColor = "#25324D"
+baseRadius = "0.75rem"
+font = "sans-serif"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
