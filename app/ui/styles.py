@@ -400,13 +400,22 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 /* =========================================================
    11. Modelos: ficha técnica y gráfico por fold
 ========================================================= */
-.lpf-ficha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 3rem; margin: .5rem 0 0; }
+.lpf-ficha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 3rem; margin: .5rem 0 0; padding: 0 !important; padding-inline-start: 0 !important; }
 .lpf-ficha div { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 1rem; padding: .5rem 0; border-bottom: 1px solid var(--line); }
 .lpf-ficha dt { color: var(--dim); font-weight: 600; font-size: var(--fs-sm); }
 .lpf-ficha dd { margin: 0; color: var(--ink); font-size: var(--fs-base); }
 
 .lpf-fold-caja { overflow-x: auto; }
 .lpf-fold { display: block; width: 100%; min-width: 540px; height: auto; }
+
+/* Indicadores principales: cuadrícula de 2 columnas (2 × 2) */
+.lpf-indicadores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 3rem; margin: .5rem 0 0; }
+.lpf-indicador { display: flex; align-items: baseline; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid var(--line); }
+.lpf-indicador b { flex: 0 0 5.5rem; font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.lpf-indicador span { color: var(--muted); font-size: var(--fs-base); line-height: 1.35; }
+
+/* Tablas de datos (Modelos): ocupan todo el ancho del contenido, como el resto de bloques */
+.lpf-tabla-wrap--datos { max-width: none; }
 
 .lpf-explica { max-width: 78ch; margin: .75rem 0 0; color: var(--ink); font-size: var(--fs-base); line-height: 1.55; }
 
@@ -438,6 +447,7 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 @media (max-width: 900px) {
     .lpf-poisson { grid-template-columns: 1fr; gap: 1.5rem; }
     .lpf-ficha { grid-template-columns: 1fr; }
+    .lpf-indicadores { grid-template-columns: 1fr; }
     .lpf-hist__linea { grid-template-columns: 1fr 1fr; gap: .6rem 1rem; }
     .lpf-hist__partido { grid-column: 1 / -1; }
     .lpf-hist__dato--fin { text-align: left; }

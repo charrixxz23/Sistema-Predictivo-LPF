@@ -37,7 +37,7 @@ except Exception as exc:
     page_header("Clasificación")
     error_state(
         "No se pudieron cargar los datos",
-        "Revisa que exista data/processed/lpf_historico_modelado.csv.",
+        "Verificar que exista el histórico de partidos procesado.",
         detalle=str(exc),
     )
     st.stop()
@@ -62,7 +62,7 @@ tabla = obtener_clasificacion(temporada)
 if tabla.empty:
     empty_state(
         "Sin resultados para esta temporada",
-        "Elige otra temporada para ver su clasificación.",
+        "Seleccione otra temporada para ver su clasificación.",
         icono="🏆",
     )
     st.stop()
@@ -196,8 +196,8 @@ try:
 
         if len(sin_resultado):
             detalle += (
-                f" Hay {len(sin_resultado)} partidos con fecha pasada y sin "
-                "resultado en los datos; no están contados."
+                f" Existen {len(sin_resultado)} partidos con fecha pasada y sin "
+                "resultado en los datos; no se incluyen en el cálculo."
             )
 except Exception:
     pass

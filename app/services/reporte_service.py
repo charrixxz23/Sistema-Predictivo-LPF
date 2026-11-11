@@ -132,13 +132,13 @@ def fecha_corte_entrenamiento():
 # Figuras agrupadas por pestaña: (archivo, título)
 FIGURAS = {
     "Validación temporal": [
-        ("cv_temporal_accuracy.png", "Accuracy por fold temporal"),
-        ("cv_temporal_f1_macro.png", "F1 macro por fold temporal"),
+        ("cv_temporal_accuracy.png", "Exactitud por pliegue temporal"),
+        ("cv_temporal_f1_macro.png", "F1 macro por pliegue temporal"),
     ],
     "XGBoost": [
         ("xgboost_prueba_final.png", "Prueba final"),
         ("xgboost_importancia_caracteristicas.png", "Importancia de características"),
-        ("xgb_f1_train_vs_val_compromiso.png", "F1 entrenamiento vs validación"),
+        ("xgb_f1_train_vs_val_compromiso.png", "F1 de entrenamiento frente a validación"),
     ],
     "Poisson": [
         ("poisson_prueba_final.png", "Prueba final"),
@@ -147,7 +147,7 @@ FIGURAS = {
     ],
     "Otros modelos": [
         ("random_forest_prueba_final.png", "Random Forest, prueba final"),
-        ("regresion_logistica_prueba_final.png", "Regresión Logística, prueba final"),
+        ("regresion_logistica_prueba_final.png", "Regresión logística, prueba final"),
     ],
 }
 

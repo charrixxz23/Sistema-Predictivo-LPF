@@ -34,7 +34,7 @@ except Exception as exc:
     page_header("Inicio")
     error_state(
         "No se pudieron cargar los datos",
-        "Revisa que existan los archivos de data/processed y data/raw/partidos.",
+        "Verificar que estén disponibles los datos procesados y el calendario de partidos.",
         detalle=str(exc),
     )
     st.stop()
@@ -45,9 +45,9 @@ jornada = jornada_sugerida(calendario)
 if calendario.empty or jornada is None:
     page_header("Inicio")
     empty_state(
-        "Aún no hay calendario cargado",
-        "Cuando exista un archivo de partidos en data/raw/partidos, la jornada "
-        "en curso aparecerá aquí.",
+        "Calendario no disponible",
+        "La jornada en curso se mostrará cuando exista un calendario de partidos "
+        "cargado.",
         icono="📅",
     )
     st.stop()
@@ -138,7 +138,7 @@ with tabla_col:
         if tabla.empty:
             empty_state(
                 "Sin partidos jugados todavía",
-                "La tabla aparecerá cuando haya resultados registrados.",
+                "La tabla se mostrará cuando existan resultados registrados.",
                 icono="🏆",
             )
         else:

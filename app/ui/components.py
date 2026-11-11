@@ -235,6 +235,24 @@ def day_heading(valor):
     mostrar(f"<div class='lpf-dia'>{texto_seguro(fecha_larga(valor))}</div>")
 
 
+def indicator_grid_html(indicadores):
+    """Indicadores principales en una cuadrícula de 2 columnas (2 × 2 con cuatro).
+
+    indicadores: iterable de (valor, descripción). El valor va en grande.
+    """
+
+    return (
+        "<div class='lpf-indicadores'>"
+        + "".join(
+            "<div class='lpf-indicador'>"
+            f"<b>{texto_seguro(valor)}</b>"
+            f"<span>{texto_seguro(texto)}</span></div>"
+            for valor, texto in indicadores
+        )
+        + "</div>"
+    )
+
+
 def data_line_html(datos):
     """Línea de datos. datos: iterable de (valor, texto); el valor va en negrita."""
 
@@ -721,8 +739,8 @@ def prediction_panel_html(resultado, local, visitante):
         f"<section class='lpf-prob3' style='--c1:{c_local};--c2:{c_visita}'>"
         f"{_barra_1x2_html(probabilidades, ray_local, ray_visita, 'lpf-prob3__barra')}"
         f"<div class='lpf-prob3__cols'>{columnas}</div>"
-        "<p class='lpf-prob3__pick'>Predicción principal: "
-        f"<strong>{texto_seguro(RESULTADO_LABELS.get(pick, pick)).upper()}</strong></p>"
+        "<p class='lpf-prob3__pick'>Resultado más probable según XGBoost: "
+        f"<strong>{texto_seguro(RESULTADO_LABELS.get(pick, pick)).lower()}</strong></p>"
         "</section>"
     )
 
@@ -778,8 +796,8 @@ def score_matrix_html(resultado, local, visitante):
     if resaltado is not None:
         i, j = resaltado
         pie = (
-            f"Más oscuro = más probable (% de cada marcador). Resaltado: {i} - {j} "
-            f"({caja[i, j] * 100:.2f} %), el marcador más probable."
+            f"Un tono más oscuro indica mayor probabilidad (% de cada marcador). "
+            f"Resaltado: {i} - {j} ({caja[i, j] * 100:.2f} %), el marcador más probable."
         )
     else:
         pie = (
@@ -940,7 +958,7 @@ def data_table_html(encabezados, filas, destacar=None):
         cuerpo.append(f"<tr{estilo}>{celdas}</tr>")
 
     return (
-        "<div class='lpf-tabla-wrap'><table class='lpf-tabla lpf-tabla--datos'>"
+        "<div class='lpf-tabla-wrap lpf-tabla-wrap--datos'><table class='lpf-tabla lpf-tabla--datos'>"
         f"<thead><tr>{cabecera}</tr></thead>"
         f"<tbody>{''.join(cuerpo)}</tbody></table></div>"
     )
@@ -1050,7 +1068,7 @@ def fold_chart_html(folds, modelo_app="XGBoost"):
     puntos = " ".join(f"{x(i):.1f},{y(f['baseline_accuracy']):.1f}" for i, f in enumerate(folds))
     partes.append(f"<polyline points='{puntos}' class='base'/>")
 
-    etiquetas = [("Baseline", folds[-1]["baseline_accuracy"], "#57534B")]
+    etiquetas = [("Línea base", folds[-1]["baseline_accuracy"], "#57534B")]
 
     otros = [n for n in nombres if n != modelo_app]
     for nombre in otros + [modelo_app]:
@@ -1086,7 +1104,7 @@ def fold_chart_html(folds, modelo_app="XGBoost"):
         )
 
     partes.append(
-        f"<text x='{izq - 44}' y='20' class='t'>Accuracy (%)</text></svg>"
+        f"<text x='{izq - 44}' y='20' class='t'>Exactitud (%)</text></svg>"
     )
 
     svg = "".join(partes)
@@ -1095,13 +1113,13 @@ def fold_chart_html(folds, modelo_app="XGBoost"):
     resumen = "; ".join(
         f"{f['anio']}: " + ", ".join(
             f"{n} {v * 100:.1f} %" for n, v in f["modelos"].items()
-        ) + f", baseline {f['baseline_accuracy'] * 100:.1f} %"
+        ) + f", línea base {f['baseline_accuracy'] * 100:.1f} %"
         for f in folds
     )
 
     return (
         "<div class='lpf-fold-caja'>"
         "<img class='lpf-fold' "
-        f"alt='Accuracy por fold de la validación cruzada frente al baseline. {texto_seguro(resumen)}' "
+        f"alt='Exactitud por pliegue de la validación cruzada frente a la línea base. {texto_seguro(resumen)}' "
         f"src='data:image/svg+xml;base64,{datos}'></div>"
     )

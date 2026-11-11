@@ -107,7 +107,7 @@ except Exception as exc:
     page_header("Predicción de partido")
     error_state(
         "No se pudieron cargar los datos",
-        "Revisa que exista data/processed/lpf_historico_modelado.csv.",
+        "Verificar que exista el histórico de partidos procesado.",
         detalle=str(exc),
     )
     st.stop()
@@ -115,7 +115,8 @@ except Exception as exc:
 
 page_header(
     "Predicción de partido",
-    "Centro de análisis para encuentros de la Liga Panameña de Fútbol.",
+    "Estimación de las probabilidades 1X2 y del marcador de un encuentro de "
+    "la Liga Panameña de Fútbol.",
 )
 
 equipos = EQUIPOS_ACTIVOS.copy()
@@ -148,7 +149,9 @@ with st.container(key="match-controls"):
         )
 
     with fecha_col:
-        fecha_partido = st.date_input("Fecha del partido", key="pred_fecha")
+        fecha_partido = st.date_input(
+            "Fecha del partido", key="pred_fecha", format="DD/MM/YYYY"
+        )
 
     local_col, visitante_col = st.columns([1, 1], gap="large")
 
@@ -182,11 +185,11 @@ with centro:
 if analizar:
     if equipo_local == equipo_visitante:
         st.error(
-            "Selecciona dos equipos diferentes para ejecutar el análisis.",
+            "Seleccione dos equipos diferentes para ejecutar el análisis.",
             icon=":material/error:",
         )
     else:
-        with st.spinner("Ejecutando inferencia con los modelos entrenados..."):
+        with st.spinner("Calculando la predicción con los modelos entrenados…"):
             modelos = obtener_modelos()
             resultado = analizar_partido(
                 historico=historico,
@@ -248,7 +251,7 @@ else:
     elif not registros:
         empty_state(
             "Aún no hay análisis guardados",
-            "Pulsa «Analizar partido» y el resultado quedará registrado aquí.",
+            "Al ejecutar «Analizar partido», el resultado se registrará en esta sección.",
             icono="🗂",
         )
     else:

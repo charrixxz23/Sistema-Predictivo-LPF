@@ -26,7 +26,7 @@ except Exception as exc:
     page_header("Calendario")
     error_state(
         "No se pudo cargar el calendario",
-        "Revisa que exista un archivo de partidos en data/raw/partidos.",
+        "No se encontró el archivo de partidos de la temporada.",
         detalle=str(exc),
     )
     st.stop()
@@ -57,8 +57,8 @@ def _mover_jornada(paso):
 
 page_header(
     f"Calendario · {etiqueta_temporada(temporada)}",
-    "Elige una jornada para ver sus partidos, horarios (hora de Panamá) y la "
-    "predicción de cada encuentro.",
+    "Partidos de cada jornada, con horarios en hora de Panamá y la predicción "
+    "de cada encuentro.",
 )
 
 with st.container(key="jornada-selector", horizontal=True, vertical_alignment="center"):
@@ -114,7 +114,7 @@ if equipo != "Todos los equipos":
 if partidos.empty:
     empty_state(
         "Sin partidos para este filtro",
-        "Prueba con otro equipo o elige otra jornada.",
+        "Seleccione otro equipo u otra jornada.",
         icono="🔍",
     )
     st.stop()
@@ -174,11 +174,11 @@ for fecha, grupo in partidos.groupby("fecha", sort=True):
 
 if con_predicciones and corte_entrenamiento is not None:
     foot_note(
-        "Cada predicción usa solo partidos anteriores a la fecha del encuentro. "
-        "El indicador «Acertó / No acertó» aparece únicamente en partidos "
-        f"posteriores al {corte_entrenamiento.strftime('%d/%m/%Y')}, último día "
-        "de datos con que se entrenaron los modelos; los anteriores se rotulan "
-        "«Dentro del período de entrenamiento» porque el modelo ya conocía ese "
-        "resultado. Un acierto aislado no sustituye la validación de la "
-        "sección Modelos."
+        "Cada predicción emplea únicamente partidos anteriores a la fecha del "
+        "encuentro. El indicador «Acertó / No acertó» se muestra solo para los "
+        f"partidos posteriores al {corte_entrenamiento.strftime('%d/%m/%Y')}, "
+        "última fecha de datos usada en el entrenamiento de los modelos; los "
+        "anteriores se rotulan «Dentro del período de entrenamiento», pues el "
+        "modelo ya conocía su resultado. Un acierto aislado no sustituye la "
+        "validación presentada en la sección Modelos."
     )

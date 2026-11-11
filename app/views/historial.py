@@ -20,14 +20,14 @@ from ui.loaders import leer_historial, preparar_base_datos
 
 page_header(
     "Historial de análisis",
-    "Cada análisis ejecutado en la sección Predicciones queda registrado "
-    "en la base SQLite local.",
+    "Registro de los análisis ejecutados en la sección Predicciones, "
+    "almacenado en una base de datos local (SQLite).",
 )
 
 if not preparar_base_datos():
     error_state(
         "Historial no disponible",
-        "No fue posible abrir la base SQLite local en database/.",
+        "No fue posible abrir la base de datos local.",
     )
     st.stop()
 
@@ -44,7 +44,7 @@ if error is not None:
 if not registros:
     empty_state(
         "Aún no hay análisis guardados",
-        "Ve a Predicciones, elige un partido y pulsa «Analizar partido».",
+        "Los análisis ejecutados en la sección Predicciones se registrarán aquí.",
         icono="🗂",
     )
     st.stop()
