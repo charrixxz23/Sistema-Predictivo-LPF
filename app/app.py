@@ -65,6 +65,9 @@ pagina = st.navigation(paginas, position="top")
 
 brand_bar(db_disponible=preparar_base_datos())
 
-pagina.run()
-
+# El pie se crea antes que la página y se coloca al final con CSS (order). Así
+# también aparece en las páginas que terminan con st.stop() (estados vacíos o de
+# error), tras el cual Streamlit ya no admite nuevos elementos.
 footer()
+
+pagina.run()

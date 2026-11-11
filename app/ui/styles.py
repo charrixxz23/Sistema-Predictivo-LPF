@@ -205,6 +205,9 @@ header[data-testid="stHeader"] a[aria-current="page"] [data-testid="stIconMateri
 .lpf-header__title { margin: 0; font-family: var(--font-display); font-size: var(--fs-2xl); line-height: 1.05; font-weight: 700; color: var(--ink); }
 .lpf-header__subtitle { margin: .3rem 0 0; color: var(--muted); font-size: var(--fs-base); max-width: 75ch; }
 
+/* El pie se crea antes que el contenido de la página; order lo deja siempre al final */
+[data-testid="stElementContainer"]:has(> .lpf-footer), [data-testid="stElementContainer"]:has(.lpf-footer) { order: 9999; }
+
 .lpf-footer {
     margin-top: 3rem;
     padding: 1.25rem 0 .5rem;
