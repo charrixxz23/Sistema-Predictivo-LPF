@@ -34,7 +34,7 @@ except Exception as exc:
     page_header("Inicio")
     error_state(
         "No se pudieron cargar los datos",
-        "Verificar que estén disponibles los datos procesados y el calendario de partidos.",
+        "Verifique que estén disponibles los datos procesados y el calendario de partidos.",
         detalle=str(exc),
     )
     st.stop()

@@ -107,7 +107,7 @@ except Exception as exc:
     page_header("Predicción de partido")
     error_state(
         "No se pudieron cargar los datos",
-        "Verificar que exista el histórico de partidos procesado.",
+        "Verifique que exista el histórico de partidos procesado.",
         detalle=str(exc),
     )
     st.stop()

@@ -92,7 +92,7 @@ if cv is None and final is None:
     empty_state(
         "Métricas no disponibles",
         "No se encontró el archivo de métricas exportado por los cuadernos de "
-        "análisis. Para generarlo, ejecutar los cuadernos 05 a 09 hasta su "
+        "análisis. Para generarlo, ejecute los cuadernos 05 a 09 hasta su "
         "última celda («Exportación de métricas»).",
         icono="📊",
     )
