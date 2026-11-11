@@ -55,3 +55,9 @@ Desktop.ini
 *_backup_*.css
 backup/
 backups/
+
+# Respaldo de rediseño de interfaz
+backup_ui/
+
+# Artefactos de las herramientas de automatizacion del navegador
+.playwright-mcp/

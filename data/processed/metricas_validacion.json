@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "metadatos": {
+    "fecha_corte_entrenamiento": "2025-11-29",
+    "n_partidos_entrenamiento_final": 2075,
+    "prueba": {
+      "fecha_inicio": "2026-01-16",
+      "fecha_fin": "2026-09-14",
+      "n_partidos": 151
+    },
+    "cv_temporal": {
+      "fecha_maxima_desarrollo": "2025-11-29"
+    }
+  },
+  "prueba_final": {
+    "modelos": {
+      "Regresión Logística": {
+        "accuracy": 0.36423841059602646,
+        "precision_macro": 0.387638931117192,
+        "recall_macro": 0.382364810330912,
+        "f1_macro": 0.36727111897390535,
+        "log_loss": 1.0910163867509746,
+        "fuente": "05_regresion_logistica.ipynb"
+      },
+      "XGBoost": {
+        "accuracy": 0.3973509933774834,
+        "precision_macro": 0.40284495021337124,
+        "recall_macro": 0.3941014258810869,
+        "f1_macro": 0.3586975484825435,
+        "log_loss": 1.0835832357406616,
+        "fuente": "07_xgboost.ipynb"
+      },
+      "Poisson (resultado derivado)": {
+        "accuracy": 0.3708609271523179,
+        "precision_macro": 0.2655423280423281,
+        "recall_macro": 0.3432539682539682,
+        "f1_macro": 0.22317829457364344,
+        "log_loss": 1.0928259077407207,
+        "fuente": "08_poisson.ipynb"
+      },
+      "Random Forest": {
+        "accuracy": 0.3576158940397351,
+        "precision_macro": 0.35932453789596647,
+        "recall_macro": 0.38423683974531436,
+        "f1_macro": 0.3539436827362524,
+        "log_loss": 1.0862375991131066,
+        "fuente": "06_random_forest.ipynb"
+      }
+    },
+    "baseline": {
+      "accuracy": 0.3708609271523179,
+      "clase": "L",
+      "fuente": "07_xgboost.ipynb"
+    }
+  },
+  "generado": "2026-11-11T13:45:55",
+  "poisson_prueba": {
+    "mae_local": 0.9556947470931118,
+    "mae_visitante": 0.818662396320244,
+    "marcador_exacto": 0.16556291390728478,
+    "marcadores_acertados": 25,
+    "n_partidos": 151,
+    "fuente": "08_poisson.ipynb"
+  },
+  "cv_temporal": {
+    "n_folds": 6,
+    "anios_validacion": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "baseline_accuracy": 0.3811734909244407,
+    "baseline_accuracy_sd": 0.02870750854973626,
+    "modelos": [
+      {
+        "modelo": "Random Forest",
+        "accuracy": 0.41812649500492477,
+        "accuracy_sd": 0.027165616249840544,
+        "f1_macro": 0.4098822800861343,
+        "f1_macro_sd": 0.02658217740428914,
+        "log_loss": 1.0779152646047876,
+        "log_loss_sd": 0.014078085331999108,
+        "folds_sobre_baseline": 6,
+        "total_folds": 6
+      },
+      {
+        "modelo": "Regresión Logística",
+        "accuracy": 0.40278950330659913,
+        "accuracy_sd": 0.03263777452049134,
+        "f1_macro": 0.39363071362911334,
+        "f1_macro_sd": 0.03227233232532411,
+        "log_loss": 1.0891145626214975,
+        "log_loss_sd": 0.004855862840957622,
+        "folds_sobre_baseline": 4,
+        "total_folds": 6
+      },
+      {
+        "modelo": "XGBoost",
+        "accuracy": 0.4015934993668215,
+        "accuracy_sd": 0.034462455261217606,
+        "f1_macro": 0.34986563619432337,
+        "f1_macro_sd": 0.03128605325770984,
+        "log_loss": 1.0823188424110413,
+        "log_loss_sd": 0.01296476084690169,
+        "folds_sobre_baseline": 6,
+        "total_folds": 6
+      }
+    ],
+    "folds": [
+      {
+        "anio": 2020,
+        "baseline_accuracy": 0.3695652173913043,
+        "modelos": {
+          "Random Forest": 0.44565217391304346,
+          "Regresión Logística": 0.40217391304347827,
+          "XGBoost": 0.3804347826086957
+        }
+      },
+      {
+        "anio": 2021,
+        "baseline_accuracy": 0.35436893203883496,
+        "modelos": {
+          "Random Forest": 0.3883495145631068,
+          "Regresión Logística": 0.34951456310679613,
+          "XGBoost": 0.3640776699029126
+        }
+      },
+      {
+        "anio": 2022,
+        "baseline_accuracy": 0.3640776699029126,
+        "modelos": {
+          "Random Forest": 0.3932038834951456,
+          "Regresión Logística": 0.41262135922330095,
+          "XGBoost": 0.3737864077669903
+        }
+      },
+      {
+        "anio": 2023,
+        "baseline_accuracy": 0.4223300970873786,
+        "modelos": {
+          "Random Forest": 0.45145631067961167,
+          "Regresión Logística": 0.4029126213592233,
+          "XGBoost": 0.44660194174757284
+        }
+      },
+      {
+        "anio": 2024,
+        "baseline_accuracy": 0.41262135922330095,
+        "modelos": {
+          "Random Forest": 0.42718446601941745,
+          "Regresión Logística": 0.45145631067961167,
+          "XGBoost": 0.4368932038834951
+        }
+      },
+      {
+        "anio": 2025,
+        "baseline_accuracy": 0.3640776699029126,
+        "modelos": {
+          "Random Forest": 0.4029126213592233,
+          "Regresión Logística": 0.39805825242718446,
+          "XGBoost": 0.4077669902912621
+        }
+      }
+    ],
+    "fuente": "09_validacion_cruzada_temporal.ipynb"
+  }
+}
